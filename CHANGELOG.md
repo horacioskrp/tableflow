@@ -50,3 +50,15 @@ to [Semantic Versioning](https://semver.org/).
   columns it carries and leaving the rest blank. Goldens: `multiversion`,
   `multiversion_reversed`. (Deferred: cross-version repeat merging and
   per-version field paths; only the main section is merged.)
+- Phase 6 XLSX output: a new `tableflow-xlsx` crate (backed by
+  `rust_xlsxwriter`) writes the exported tables to an `.xlsx` workbook — one
+  worksheet per table (main + each repeat), every cell as text
+  (`xls_types_as_text` default) — via `to_xlsx` (bytes) / `write_xlsx` (file).
+  Worksheet names follow Excel's rules: forbidden characters `[]:*?/\` and edge
+  apostrophes become `_`, names truncate to 31 characters with an ellipsis and
+  de-duplicate with a ` (n)` suffix. The `tableflow::export_xlsx` facade returns
+  the workbook bytes. XLSX conformance reads the workbook back (via `calamine`)
+  and compares its sheet/cell grid to the reference exporter's; goldens
+  `simple_flat`, `translated_fr`, `repeat_tables`, `selmulti_both` (as
+  `.xlsx.json`). (Deferred: native cell types, HXL tag header rows, media URLs,
+  copy / filter fields.)

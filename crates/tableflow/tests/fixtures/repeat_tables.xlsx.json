@@ -1,0 +1,50 @@
+{
+  "sheets": [
+    {
+      "name": "Rep",
+      "rows": [
+        [
+          "hh",
+          "_index"
+        ],
+        [
+          "A",
+          "1"
+        ],
+        [
+          "B",
+          "2"
+        ]
+      ]
+    },
+    {
+      "name": "members",
+      "rows": [
+        [
+          "mname",
+          "mage",
+          "_parent_table_name",
+          "_parent_index"
+        ],
+        [
+          "x",
+          "1",
+          "Rep",
+          "1"
+        ],
+        [
+          "y",
+          "2",
+          "Rep",
+          "1"
+        ],
+        [
+          "z",
+          "3",
+          "Rep",
+          "2"
+        ]
+      ]
+    }
+  ]
+}
