@@ -1,0 +1,17 @@
+{
+  "title": "geo",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "site", "label": "Site" },
+        { "type": "geoshape", "name": "area", "label": "Area" }
+      ]
+    }
+  },
+  "submissions": [
+    {
+      "site": "CW",
+      "area": "0 0 0 0;2 0 0 0;2 2 0 0;0 2 0 0;0 0 0 0"
+    }
+  ]
+}

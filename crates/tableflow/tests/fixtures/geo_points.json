@@ -1,0 +1,25 @@
+{
+  "title": "geo",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "site", "label": "Site" },
+        { "type": "geopoint", "name": "loc", "label": "Location" },
+        { "type": "geotrace", "name": "route", "label": "Route" },
+        { "type": "geoshape", "name": "area", "label": "Area" }
+      ]
+    }
+  },
+  "submissions": [
+    {
+      "site": "Alpha",
+      "loc": "40.7128 -74.0060 10 5",
+      "route": "40.70 -74.00 0 0;40.80 -74.10 0 0;40.90 -74.20 0 0",
+      "area": "0 0 0 0;0 2 0 0;2 2 0 0;2 0 0 0;0 0 0 0"
+    },
+    {
+      "site": "Beta",
+      "loc": "48.8566 2.3522 35 8"
+    }
+  ]
+}

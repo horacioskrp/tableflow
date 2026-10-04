@@ -1,0 +1,19 @@
+[package]
+name = "tableflow-geojson"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "GeoJSON serializer for tableflow: geo responses to a FeatureCollection."
+keywords = ["geojson", "geo", "export", "spatial", "feature"]
+categories = ["encoding"]
+
+[dependencies]
+tableflow-core.workspace = true
+tableflow-schema.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
