@@ -1,0 +1,23 @@
+{
+  "title": "Rep",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "hh", "label": "Household" },
+        { "type": "begin_repeat", "name": "members", "label": "Members" },
+        { "type": "text", "name": "mname", "label": "Member name" },
+        { "type": "integer", "name": "mage", "label": "Member age" },
+        { "type": "end_repeat" }
+      ]
+    }
+  },
+  "submissions": [
+    { "hh": "A", "members": [
+      { "members/mname": "x", "members/mage": 1 },
+      { "members/mname": "y", "members/mage": 2 }
+    ] },
+    { "hh": "B", "members": [
+      { "members/mname": "z", "members/mage": 3 }
+    ] }
+  ]
+}
