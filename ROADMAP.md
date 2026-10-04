@@ -13,7 +13,7 @@ exporter (after format-aware normalization) and CI is green.
 | 4 | `select_multiple` expansion | ✅ done |
 | 5 | Multi-version field canvas | ✅ done |
 | 6 | XLSX output & header options | ✅ done |
-| 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
+| 7 | GeoJSON (KML / SPSS deferred) | ✅ done |
 | 8 | Automatic per-field report | ☐ |
 
 ## Phase 0 — Workspace & harness ✅
@@ -88,10 +88,18 @@ to CSV, matching the reference exporter.
 - [ ] Deferred: `xls_types_as_text=false` (native cell types), HXL tag header
       rows, `include_media_url`, copy / filter fields
 
-## Phase 7 — Geo / SPSS / attachments
+## Phase 7 — Geo / SPSS / attachments ✅
 
-- [ ] GeoJSON and KML; SPSS value-label files; base64 attachments
-- [ ] **GO:** geo / SPSS / attachment goldens match
+- [x] GeoJSON (`tableflow-geojson`): one `Feature` per answered geo question in
+      the main section — `geopoint`→`Point`, `geotrace`→`LineString`,
+      `geoshape`→`Polygon`; coordinates swapped to `[lon, lat, alt]` (accuracy
+      dropped); polygon rings closed and wound counter-clockwise (RFC 7946);
+      other non-empty fields become summary-formatted `properties`
+- [x] `tableflow::export_geojson` facade (serialized `FeatureCollection`)
+- [x] **GO:** GeoJSON goldens match as parsed JSON (`geo_points`,
+      `geo_shape_cw` — the latter locks the right-hand-rule rewind)
+- [ ] Deferred: KML (reference output comes from an external converter), SPSS
+      value-label files (binary `.sav`), base64 attachments
 
 ## Phase 8 — Automatic report
 

@@ -26,6 +26,11 @@ fn csv_fixtures_match_reference() {
         if path.to_string_lossy().ends_with(".xlsx.json") {
             continue;
         }
+        // A fixture whose golden is `<name>.geojson` belongs to the GeoJSON
+        // conformance test, not this CSV one.
+        if path.with_extension("geojson").exists() {
+            continue;
+        }
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())
