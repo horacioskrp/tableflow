@@ -90,3 +90,8 @@ to [Semantic Versioning](https://semver.org/).
   correctly rounded (a port of CPython's `statistics._float_sqrt_of_frac`), so
   the summaries match the reference exporter bit-for-bit. New goldens
   `report_numeric`, `report_numeric_edge`.
+- `or_other` selects: a field typed `select_* <list> or_other` (or
+  `select_*_or_other`, or an `or_other` column) now carries an `or_other` flag
+  on the model. `select_multiple` gains an `/other` details column (set when the
+  value includes the `other` token), and either select kind gains a companion
+  `<name>_other` free-text column right after it. New golden `selmulti_or_other`.

@@ -1,0 +1,18 @@
+{
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "q", "label": "Q" },
+        { "type": "select_multiple col or_other", "name": "langs", "label": "Langs" }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "fr", "label": "Fr" },
+        { "list_name": "col", "name": "en", "label": "En" }
+      ]
+    }
+  },
+  "submissions": [
+    { "q": "a", "langs": "fr other" },
+    { "q": "b", "langs": "en" }
+  ]
+}

@@ -62,7 +62,8 @@ to CSV, matching the reference exporter.
       values honor the language
 - [x] **GO:** multiple-select goldens match for all three modes
       (`selmulti_{both,summary,details}`, `selmulti_en_both`)
-- [ ] Deferred: `or_other` synthetic option/column
+- [x] `or_other`: an `/other` details column (set when `other` is selected) plus
+      a companion `<name>_other` free-text column (`selmulti_or_other`)
 
 ## Phase 5 — Multiple versions ✅
 
