@@ -8,5 +8,8 @@ authors.workspace = true
 repository.workspace = true
 description = "Core data model (FormPack, Version, Section, Field, Submission) for tableflow."
 
+[dependencies]
+serde_json.workspace = true
+
 [lints]
 workspace = true
