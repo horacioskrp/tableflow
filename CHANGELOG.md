@@ -43,3 +43,10 @@ to [Semantic Versioning](https://semver.org/).
   per option; headers honor the language. `export_csv` / `export_tables_text`
   gain a `multiple_select` argument. Goldens: `selmulti_{both,summary,details}`,
   `selmulti_en_both`. (Deferred: `or_other`.)
+- Phase 5 multi-version field canvas: `tableflow-core::merge_versions` folds
+  several versions into one export canvas — the newest listed version's fields
+  lead, then each older version appends only its not-yet-seen fields — and the
+  `tableflow::export_csv_versions` facade exports it, each submission filling the
+  columns it carries and leaving the rest blank. Goldens: `multiversion`,
+  `multiversion_reversed`. (Deferred: cross-version repeat merging and
+  per-version field paths; only the main section is merged.)
