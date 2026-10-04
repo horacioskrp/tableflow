@@ -1,0 +1,12 @@
+[package]
+name = "tableflow-schema"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Field type system: format submission values into export cells for tableflow."
+
+[lints]
+workspace = true

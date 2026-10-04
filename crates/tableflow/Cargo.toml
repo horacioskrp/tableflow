@@ -1,0 +1,13 @@
+[package]
+name = "tableflow"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Turn form submissions into tabular exports (CSV, XLSX, GeoJSON) — end-to-end facade."
+readme = "README.md"
+
+[lints]
+workspace = true

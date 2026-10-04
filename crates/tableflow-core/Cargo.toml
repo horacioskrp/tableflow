@@ -1,0 +1,12 @@
+[package]
+name = "tableflow-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Core data model (FormPack, Version, Section, Field, Submission) for tableflow."
+
+[lints]
+workspace = true
