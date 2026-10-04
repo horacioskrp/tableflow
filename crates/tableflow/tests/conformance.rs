@@ -36,16 +36,31 @@ fn csv_fixtures_match_reference() {
             .clone();
         let lang = input.get("lang").and_then(Value::as_str);
 
-        let got = tableflow::export_csv(version, &submissions, lang);
+        // A `.tables` golden selects the multi-section export; otherwise `.csv`.
+        let tables_path = dir.join(format!("{stem}.tables"));
+        let (got, golden_path) = if tables_path.exists() {
+            let title = input
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("submissions");
+            (
+                tableflow::export_tables_text(version, &submissions, lang, title),
+                tables_path,
+            )
+        } else {
+            (
+                tableflow::export_csv(version, &submissions, lang),
+                dir.join(format!("{stem}.csv")),
+            )
+        };
 
-        let golden_path = dir.join(format!("{stem}.csv"));
         let golden = fs::read_to_string(&golden_path)
-            .unwrap_or_else(|_| panic!("missing golden {stem}.csv"));
+            .unwrap_or_else(|_| panic!("missing golden for `{stem}`"));
         let golden = golden.strip_suffix('\n').unwrap_or(&golden);
 
-        assert_eq!(got, golden, "CSV mismatch for fixture `{stem}`");
+        assert_eq!(got, golden, "export mismatch for fixture `{stem}`");
         checked += 1;
     }
 
-    assert!(checked >= 1, "no CSV fixtures found");
+    assert!(checked >= 1, "no fixtures found");
 }

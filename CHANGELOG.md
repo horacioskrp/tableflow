@@ -29,3 +29,10 @@ to [Semantic Versioning](https://semver.org/).
   main table, keeping their short name/label as the column header while reading
   values by their full submission path (`group/field`). Goldens:
   `grouped_{default,en}`.
+- Phase 3b repeats → linked tables: the model moves to a `Section` list (main +
+  one per repeat); `tableflow-export::export_tables` emits every section with
+  `_index` on parents and `_parent_table_name` / `_parent_index` on repeat rows,
+  and `tableflow::export_tables_text` renders them framed by section. CSV export
+  now emits the main section with its `_index` column when repeats are present.
+  Multi-section golden `repeat_tables`. (Deferred: `hierarchy_in_labels`, nested
+  repeats beyond one level.)
