@@ -10,7 +10,7 @@ exporter (after format-aware normalization) and CI is green.
 | 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
 | 2 | Field type system & translations | ✅ done |
 | 3 | Groups & repeats → linked tables | ✅ done |
-| 4 | `select_multiple` expansion | ☐ |
+| 4 | `select_multiple` expansion | ✅ done |
 | 5 | Multi-version field canvas | ☐ |
 | 6 | XLSX output & header options | ☐ |
 | 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
@@ -55,11 +55,14 @@ to CSV, matching the reference exporter.
 - [ ] Deferred: `hierarchy_in_labels` (group-label-prefixed headers) and nested
       repeats beyond one level
 
-## Phase 4 — `select_multiple`
+## Phase 4 — `select_multiple` ✅
 
-- [ ] `both` / `summary` / `details`: joined cell and/or per-choice booleans;
-      `or_other`
-- [ ] **GO:** multiple-select goldens match for all three modes
+- [x] `both` / `summary` / `details`: a joined summary column (names or labels)
+      and/or one `field/choice` boolean column per option; headers and summary
+      values honor the language
+- [x] **GO:** multiple-select goldens match for all three modes
+      (`selmulti_{both,summary,details}`, `selmulti_en_both`)
+- [ ] Deferred: `or_other` synthetic option/column
 
 ## Phase 5 — Multiple versions
 

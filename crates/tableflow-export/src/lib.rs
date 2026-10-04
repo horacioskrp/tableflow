@@ -3,18 +3,20 @@
 //! [`to_csv`] emits the main section only (matching the reference exporter's
 //! `to_csv`); [`export_tables`] emits every section — the main table plus one
 //! per repeat — linked by `_index` / `_parent_index` / `_parent_table_name`.
-//! Output is `;`-separated with every field double-quoted (inner quotes
-//! doubled); headers and `select_one` values resolve through [`tableflow_schema`].
+//! Each field contributes one or more columns via [`tableflow_schema`]
+//! (`select_multiple` expands per [`MultipleSelect`]). Output is `;`-separated
+//! with every field double-quoted (inner quotes doubled).
 
 use serde_json::Value;
 use tableflow_core::{Section, Version};
+pub use tableflow_schema::MultipleSelect;
 
 /// One exported table.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
     /// Section name (the export title for the main table, else the repeat name).
     pub name: String,
-    /// Column headers (value fields, then any auto columns).
+    /// Column headers (expanded value columns, then any auto columns).
     pub header: Vec<String>,
     /// Data rows, each aligned with `header`.
     pub rows: Vec<Vec<String>>,
@@ -22,26 +24,23 @@ pub struct Table {
 
 /// Export the main section's submissions as CSV in language `lang`.
 #[must_use]
-pub fn to_csv(version: &Version, submissions: &[Value], lang: Option<&str>) -> String {
+pub fn to_csv(
+    version: &Version,
+    submissions: &[Value],
+    lang: Option<&str>,
+    mode: MultipleSelect,
+) -> String {
     let index = tableflow_schema::lang_index(version, lang);
     let main = &version.sections[0];
 
-    let mut header: Vec<String> = main
-        .fields
-        .iter()
-        .map(|field| tableflow_schema::header(field, index))
-        .collect();
+    let mut header = field_columns(version, main, index, mode);
     if main.has_children {
         header.push("_index".to_owned());
     }
 
     let mut lines = vec![format_line(&header)];
     for (position, submission) in submissions.iter().enumerate() {
-        let mut row: Vec<String> = main
-            .fields
-            .iter()
-            .map(|field| tableflow_schema::cell(version, field, submission.get(&field.path), index))
-            .collect();
+        let mut row = field_values(version, main, submission, index, mode);
         if main.has_children {
             row.push((position + 1).to_string());
         }
@@ -58,6 +57,7 @@ pub fn export_tables(
     submissions: &[Value],
     lang: Option<&str>,
     title: &str,
+    mode: MultipleSelect,
 ) -> Vec<Table> {
     let index = tableflow_schema::lang_index(version, lang);
 
@@ -66,7 +66,7 @@ pub fn export_tables(
         .iter()
         .map(|section| Table {
             name: section_name(section, title),
-            header: section_header(section, index),
+            header: section_header(version, section, index, mode),
             rows: Vec::new(),
         })
         .collect();
@@ -79,6 +79,7 @@ pub fn export_tables(
             submission,
             None,
             index,
+            mode,
             &mut counters,
             &mut tables,
         );
@@ -101,13 +102,49 @@ pub fn tables_to_text(tables: &[Table]) -> String {
     lines.join("\n")
 }
 
+/// The expanded value columns of a section (fields only, no auto columns).
+fn field_columns(
+    version: &Version,
+    section: &Section,
+    lang: Option<usize>,
+    mode: MultipleSelect,
+) -> Vec<String> {
+    section
+        .fields
+        .iter()
+        .flat_map(|field| tableflow_schema::columns(version, field, lang, mode))
+        .collect()
+}
+
+/// The expanded value cells of a section for one data object (fields only).
+fn field_values(
+    version: &Version,
+    section: &Section,
+    data: &Value,
+    lang: Option<usize>,
+    mode: MultipleSelect,
+) -> Vec<String> {
+    section
+        .fields
+        .iter()
+        .flat_map(|field| {
+            tableflow_schema::values(version, field, data.get(&field.path), lang, mode)
+        })
+        .collect()
+}
+
 /// Emit one row for `section` from `data`, then recurse into its child repeats.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "export state threaded explicitly"
+)]
 fn emit_section(
     version: &Version,
     section_index: usize,
     data: &Value,
     parent: Option<(&str, usize)>,
     lang: Option<usize>,
+    mode: MultipleSelect,
     counters: &mut [usize],
     tables: &mut [Table],
 ) {
@@ -115,11 +152,7 @@ fn emit_section(
     let my_index = counters[section_index];
     let section = &version.sections[section_index];
 
-    let mut row: Vec<String> = section
-        .fields
-        .iter()
-        .map(|field| tableflow_schema::cell(version, field, data.get(&field.path), lang))
-        .collect();
+    let mut row = field_values(version, section, data, lang, mode);
     if section.has_children {
         row.push(my_index.to_string());
     }
@@ -146,6 +179,7 @@ fn emit_section(
                     item,
                     Some((&my_name, my_index)),
                     lang,
+                    mode,
                     counters,
                     tables,
                 );
@@ -164,13 +198,14 @@ fn section_name(section: &Section, title: &str) -> String {
     }
 }
 
-/// A section's header: value-field headers, then auto columns.
-fn section_header(section: &Section, lang: Option<usize>) -> Vec<String> {
-    let mut header: Vec<String> = section
-        .fields
-        .iter()
-        .map(|field| tableflow_schema::header(field, lang))
-        .collect();
+/// A section's header: expanded value columns, then auto columns.
+fn section_header(
+    version: &Version,
+    section: &Section,
+    lang: Option<usize>,
+    mode: MultipleSelect,
+) -> Vec<String> {
+    let mut header = field_columns(version, section, lang, mode);
     if section.has_children {
         header.push("_index".to_owned());
     }
