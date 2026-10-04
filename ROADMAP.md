@@ -9,14 +9,14 @@ exporter (after format-aware normalization) and CI is green.
 | 0 | Workspace, CI, Docker & conformance harness | ✅ done |
 | 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
 | 2 | Field type system & translations | ✅ done |
-| 3 | Groups & repeats → linked tables | ☐ |
+| 3 | Groups & repeats → linked tables | 🚧 in progress |
 | 4 | `select_multiple` expansion | ☐ |
 | 5 | Multi-version field canvas | ☐ |
 | 6 | XLSX output & header options | ☐ |
 | 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
 | 8 | Automatic per-field report | ☐ |
 
-## Phase 0 — Workspace & harness 🚧
+## Phase 0 — Workspace & harness ✅
 
 - [x] Cargo workspace (edition 2024), pipeline crates, CLI scaffold
 - [x] `.gitattributes` (LF), CI (`fmt` / `clippy -D warnings` / `build` / `test`)
@@ -43,10 +43,14 @@ to CSV, matching the reference exporter.
       (unspecified/untranslated/unknown language) keeps names and raw values
 - [x] **GO:** translated CSV goldens match (`translated_{default,en,fr}`)
 
-## Phase 3 — Groups & repeats
+## Phase 3 — Groups & repeats 🚧
 
-- [ ] Each repeat group becomes its own table, linked by `_index` /
-      `_parent_index`; `group_sep` and `hierarchy_in_labels`
+- [x] 3a — Non-repeat groups: fields flatten into the main table, keeping their
+      short name/label as header and reading values by full submission path
+      (`grouped_{default,en}`)
+- [ ] 3b — Each repeat becomes its own table, linked by `_index` /
+      `_parent_index` / `_parent_table_name`; multi-section conformance
+- [ ] `group_sep` / `hierarchy_in_labels` label options
 - [ ] **GO:** grouped / (nested) repeatable goldens match
 
 ## Phase 4 — `select_multiple`
