@@ -34,8 +34,9 @@ fn csv_fixtures_match_reference() {
             .as_array()
             .expect("submissions array")
             .clone();
+        let lang = input.get("lang").and_then(Value::as_str);
 
-        let got = tableflow::export_csv(version, &submissions);
+        let got = tableflow::export_csv(version, &submissions, lang);
 
         let golden_path = dir.join(format!("{stem}.csv"));
         let golden = fs::read_to_string(&golden_path)

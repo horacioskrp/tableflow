@@ -115,11 +115,16 @@ version = "0.0.0"
 dependencies = [
  "serde_json",
  "tableflow-core",
+ "tableflow-schema",
 ]
 
 [[package]]
 name = "tableflow-schema"
 version = "0.0.0"
+dependencies = [
+ "serde_json",
+ "tableflow-core",
+]
 
 [[package]]
 name = "unicode-ident"

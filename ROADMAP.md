@@ -8,7 +8,7 @@ exporter (after format-aware normalization) and CI is green.
 | ----- | ----------------------------------------------------- | ------ |
 | 0 | Workspace, CI, Docker & conformance harness | ✅ done |
 | 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
-| 2 | Field type system & translations | ☐ |
+| 2 | Field type system & translations | ✅ done |
 | 3 | Groups & repeats → linked tables | ☐ |
 | 4 | `select_multiple` expansion | ☐ |
 | 5 | Multi-version field canvas | ☐ |
@@ -37,9 +37,11 @@ to CSV, matching the reference exporter.
 
 ## Phase 2 — Field types & translations
 
-- [ ] Per-type value formatting (text/int/decimal/date/time/geo/calculate/…)
-- [ ] `lang` selection; render coded choice values as labels
-- [ ] **GO:** typed and translated CSV goldens match
+- [x] Per-type value formatting: scalar passthrough (text/int/decimal/date/
+      time/dateTime/geo); `select_one` value → choice label
+- [x] `lang` selection → label headers and translated choice values; names mode
+      (unspecified/untranslated/unknown language) keeps names and raw values
+- [x] **GO:** translated CSV goldens match (`translated_{default,en,fr}`)
 
 ## Phase 3 — Groups & repeats
 
