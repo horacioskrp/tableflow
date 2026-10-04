@@ -62,3 +62,14 @@ to [Semantic Versioning](https://semver.org/).
   `simple_flat`, `translated_fr`, `repeat_tables`, `selmulti_both` (as
   `.xlsx.json`). (Deferred: native cell types, HXL tag header rows, media URLs,
   copy / filter fields.)
+- Phase 7 GeoJSON output: a new `tableflow-geojson` crate builds a
+  `FeatureCollection` with one `Feature` per answered geo question in the main
+  section — `geopoint`→`Point`, `geotrace`→`LineString`, `geoshape`→`Polygon`.
+  Coordinates are swapped from XForm's `lat lon alt [acc]` to GeoJSON's
+  `[lon, lat, alt]` (accuracy dropped); polygon rings are closed and wound
+  counter-clockwise (RFC 7946 right-hand rule); the remaining non-geo, non-empty
+  fields become summary-formatted `properties`. Submissions with missing or
+  malformed geo data are skipped. The `tableflow::export_geojson` facade returns
+  the serialized collection; conformance compares parsed JSON (goldens
+  `geo_points`, `geo_shape_cw`). (Deferred: KML, SPSS value-label files, base64
+  attachments.)

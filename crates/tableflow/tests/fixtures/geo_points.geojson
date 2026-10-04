@@ -1,0 +1,98 @@
+{
+  "type": "FeatureCollection",
+  "name": "geo",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.006,
+          40.7128,
+          10.0
+        ]
+      },
+      "properties": {
+        "site": "Alpha"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.0,
+            40.7,
+            0.0
+          ],
+          [
+            -74.1,
+            40.8,
+            0.0
+          ],
+          [
+            -74.2,
+            40.9,
+            0.0
+          ]
+        ]
+      },
+      "properties": {
+        "site": "Alpha"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              2.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "site": "Alpha"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.3522,
+          48.8566,
+          35.0
+        ]
+      },
+      "properties": {
+        "site": "Beta"
+      }
+    }
+  ]
+}
