@@ -78,6 +78,9 @@ pub fn columns(
         for choice in choices(version, field) {
             cols.push(format!("{base}/{}", choice_header(choice, lang)));
         }
+        if field.or_other {
+            cols.push(format!("{base}/other"));
+        }
     }
     cols
 }
@@ -108,6 +111,10 @@ pub fn values(
     if mode.has_details() {
         for choice in choices(version, field) {
             let present = selected.contains(&choice.name.as_str());
+            out.push(if present { "1" } else { "0" }.to_owned());
+        }
+        if field.or_other {
+            let present = selected.contains(&"other");
             out.push(if present { "1" } else { "0" }.to_owned());
         }
     }
