@@ -12,7 +12,7 @@ exporter (after format-aware normalization) and CI is green.
 | 3 | Groups & repeats → linked tables | ✅ done |
 | 4 | `select_multiple` expansion | ✅ done |
 | 5 | Multi-version field canvas | ✅ done |
-| 6 | XLSX output & header options | ☐ |
+| 6 | XLSX output & header options | ✅ done |
 | 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
 | 8 | Automatic per-field report | ☐ |
 
@@ -75,11 +75,18 @@ to CSV, matching the reference exporter.
 - [ ] Deferred: cross-version repeat merging, and per-version field paths that
       differ for the same field name (only the main section is merged)
 
-## Phase 6 — XLSX & header options
+## Phase 6 — XLSX & header options ✅
 
-- [ ] XLSX output; `xls_types_as_text`; media URLs; HXL tag columns; copy /
-      filter fields
-- [ ] **GO:** XLSX goldens match (cell-by-cell)
+- [x] `.xlsx` output (`tableflow-xlsx`, `rust_xlsxwriter`): one worksheet per
+      exported table (main + repeats), every cell written as text
+      (`xls_types_as_text` default); `tableflow::export_xlsx` returns bytes
+- [x] Excel worksheet-name rules: forbidden chars `[]:*?/\` and edge apostrophes
+      → `_`, truncate to 31 chars with ellipsis, de-duplicate with ` (n)`
+- [x] **GO:** XLSX goldens match cell-by-cell — workbook read back and compared
+      to the reference grid (`simple_flat`, `translated_fr`, `repeat_tables`,
+      `selmulti_both`, as `.xlsx.json`)
+- [ ] Deferred: `xls_types_as_text=false` (native cell types), HXL tag header
+      rows, `include_media_url`, copy / filter fields
 
 ## Phase 7 — Geo / SPSS / attachments
 
