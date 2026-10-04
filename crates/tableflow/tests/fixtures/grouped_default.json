@@ -1,0 +1,20 @@
+{
+  "version": {
+    "content": {
+      "translations": ["English", "Français"],
+      "translated": ["label"],
+      "survey": [
+        { "type": "text", "name": "a", "label": ["A", "Aa"] },
+        { "type": "begin_group", "name": "g", "label": ["G", "Gg"] },
+        { "type": "text", "name": "b", "label": ["B", "Bb"] },
+        { "type": "integer", "name": "c", "label": ["C", "Cc"] },
+        { "type": "end_group" },
+        { "type": "text", "name": "d", "label": ["D", "Dd"] }
+      ]
+    }
+  },
+  "submissions": [
+    { "a": "1", "g/b": "2", "g/c": 3, "d": "4" },
+    { "a": "x", "g/b": "y", "g/c": 9, "d": "z" }
+  ]
+}
