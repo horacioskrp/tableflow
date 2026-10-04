@@ -19,3 +19,9 @@ to [Semantic Versioning](https://semver.org/).
   every field double-quoted (quotes doubled), default header of field names,
   matching the reference exporter. Data-driven conformance test with a committed
   golden (`simple_flat`).
+- Phase 2 field types & translations: the model now carries per-translation
+  labels and choice lists (`tableflow-core`); `tableflow-schema` resolves the
+  requested language (`lang`) to label headers and renders `select_one` values
+  as their choice label, falling back to names/raw values in "names mode"
+  (unspecified / untranslated / unknown language). `export_csv` gains a `lang`
+  argument. Goldens: `translated_{default,en,fr}`.
