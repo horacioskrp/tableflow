@@ -1,0 +1,18 @@
+{
+  "versions": [
+    { "content": { "survey": [
+      { "type": "text", "name": "a", "label": "A" },
+      { "type": "text", "name": "color", "label": "Color" }
+    ] } },
+    { "content": { "survey": [
+      { "type": "text", "name": "a2", "label": "A2" },
+      { "type": "text", "name": "b", "label": "B" },
+      { "type": "text", "name": "color", "label": "Color" }
+    ] } }
+  ],
+  "submissions": [
+    { "a": "x1", "color": "red" },
+    { "a2": "y2", "b": "z2", "color": "blue" },
+    { "a": "x3", "color": "green" }
+  ]
+}

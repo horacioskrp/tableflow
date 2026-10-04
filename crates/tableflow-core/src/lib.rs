@@ -6,6 +6,8 @@
 //! flatten into the enclosing section, keeping a short name but a full,
 //! `/`-joined submission `path`.
 
+use std::collections::HashSet;
+
 use serde_json::Value;
 
 /// A survey field — one logical column of the export.
@@ -108,6 +110,46 @@ impl Version {
             .labels
             .get(index)
             .map(String::as_str)
+    }
+}
+
+/// Merge several form versions into one export canvas (main section only).
+///
+/// The column set is built from the **last** version in `versions` first, then
+/// each earlier version contributes only its fields whose names are not yet
+/// present — matching the reference exporter's field ordering across versions.
+/// Submissions carry their own keys, so values are read by field `path` at
+/// export time regardless of which version produced a row.
+///
+/// Translations and choices are taken from the last version; cross-version
+/// repeat merging is out of scope and only the main section is merged.
+#[must_use]
+pub fn merge_versions(versions: &[Version]) -> Version {
+    let Some(last) = versions.last() else {
+        return Version::default();
+    };
+
+    let mut fields: Vec<Field> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    for version in versions.iter().rev() {
+        let main = version.sections.first();
+        for field in main.map_or(&[][..], |s| s.fields.as_slice()) {
+            if seen.insert(field.name.clone()) {
+                fields.push(field.clone());
+            }
+        }
+    }
+
+    Version {
+        translations: last.translations.clone(),
+        sections: vec![Section {
+            name: String::new(),
+            repeat_path: None,
+            parent: None,
+            has_children: false,
+            fields,
+        }],
+        choices: last.choices.clone(),
     }
 }
 
@@ -244,5 +286,42 @@ fn list_name_of(row: &Value, kind: &str) -> Option<String> {
     match parts.next() {
         Some("select_one" | "select_multiple") => parts.next().map(str::to_owned),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{merge_versions, parse_version};
+
+    #[test]
+    fn merge_leads_with_last_version_then_older_new_fields() {
+        let v1 = parse_version(&json!({ "content": { "survey": [
+            { "type": "text", "name": "a" },
+            { "type": "text", "name": "color" },
+        ] } }));
+        let v2 = parse_version(&json!({ "content": { "survey": [
+            { "type": "text", "name": "a2" },
+            { "type": "text", "name": "b" },
+            { "type": "text", "name": "color" },
+        ] } }));
+
+        let names = |versions: &[super::Version]| {
+            merge_versions(versions).sections[0]
+                .fields
+                .iter()
+                .map(|f| f.name.clone())
+                .collect::<Vec<_>>()
+        };
+
+        // Last listed version first, then each older version's new fields.
+        assert_eq!(names(&[v1.clone(), v2.clone()]), ["a2", "b", "color", "a"]);
+        assert_eq!(names(&[v2, v1]), ["a", "color", "a2", "b"]);
+    }
+
+    #[test]
+    fn merge_of_empty_selection_is_default() {
+        assert_eq!(merge_versions(&[]), super::Version::default());
     }
 }
