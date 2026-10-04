@@ -269,6 +269,7 @@ dependencies = [
  "serde_json",
  "tableflow-core",
  "tableflow-export",
+ "tableflow-geojson",
  "tableflow-xlsx",
 ]
 
@@ -289,6 +290,15 @@ dependencies = [
 
 [[package]]
 name = "tableflow-export"
+version = "0.0.0"
+dependencies = [
+ "serde_json",
+ "tableflow-core",
+ "tableflow-schema",
+]
+
+[[package]]
+name = "tableflow-geojson"
 version = "0.0.0"
 dependencies = [
  "serde_json",

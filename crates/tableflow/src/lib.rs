@@ -1,9 +1,9 @@
 //! tableflow: turn form submissions into tabular exports.
 //!
-//! End-to-end facade over the pipeline. Phase 1–6 expose CSV, multi-section
-//! text and `.xlsx` exports ([`export_xlsx`]) in a chosen language, with
-//! `select_multiple` expansion and a multi-version field canvas
-//! ([`export_csv_versions`]); richer formats arrive later.
+//! End-to-end facade over the pipeline. Phase 1–7 expose CSV, multi-section
+//! text, `.xlsx` ([`export_xlsx`]) and GeoJSON ([`export_geojson`]) exports in a
+//! chosen language, with `select_multiple` expansion and a multi-version field
+//! canvas ([`export_csv_versions`]); richer formats arrive later.
 //!
 //! `multiple_select` is `"both"` (a joined summary column plus one boolean
 //! column per choice), `"summary"`, or `"details"`.
@@ -134,4 +134,18 @@ pub fn export_xlsx(
         MultipleSelect::parse(multiple_select),
     );
     tableflow_xlsx::to_xlsx(&tables)
+}
+
+/// Parse a version schema and export the main section's geo responses as a
+/// GeoJSON `FeatureCollection` (serialized), one feature per answered geo
+/// question. `title` names the collection; repeats are not included.
+#[must_use]
+pub fn export_geojson(
+    version_schema: &Value,
+    submissions: &[Value],
+    lang: Option<&str>,
+    title: &str,
+) -> String {
+    let version = parse_version(version_schema);
+    tableflow_geojson::to_geojson(&version, submissions, lang, title).to_string()
 }
