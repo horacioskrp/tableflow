@@ -73,3 +73,14 @@ to [Semantic Versioning](https://semver.org/).
   the serialized collection; conformance compares parsed JSON (goldens
   `geo_points`, `geo_shape_cw`). (Deferred: KML, SPSS value-label files, base64
   attachments.)
+- Phase 8 per-field report: a new `tableflow-autoreport` crate summarizes every
+  main-section field (notes excluded) — `provided` / `not_provided` /
+  `total_count`, and for categorical fields a `frequency` table with matching
+  `percentage`s (rounded to two decimals). `text` orders by descending count
+  (ties keep first-seen order); `select_one` / `select_multiple` translate each
+  value to its choice label and order by descending count (a `select_multiple`
+  answer is split into its options); `date` orders chronologically; `select_*`
+  and `date` set `show_graph`. The `tableflow::export_report` facade returns the
+  serialized report; conformance compares parsed JSON (goldens `report_counts`,
+  `report_translated`). (Deferred: numeric summaries — mean / median / mode /
+  stdev for `integer` / `decimal` — and `split_by` disaggregation.)

@@ -22,13 +22,15 @@ fn csv_fixtures_match_reference() {
         if path.extension().and_then(|e| e.to_str()) != Some("json") {
             continue;
         }
-        // `<name>.xlsx.json` goldens belong to the XLSX conformance test.
-        if path.to_string_lossy().ends_with(".xlsx.json") {
+        // `<name>.xlsx.json` / `<name>.report.json` goldens belong to the XLSX
+        // and report conformance tests.
+        let name = path.to_string_lossy();
+        if name.ends_with(".xlsx.json") || name.ends_with(".report.json") {
             continue;
         }
-        // A fixture whose golden is `<name>.geojson` belongs to the GeoJSON
-        // conformance test, not this CSV one.
-        if path.with_extension("geojson").exists() {
+        // A fixture whose golden is `<name>.geojson` or `<name>.report.json`
+        // belongs to another conformance test, not this CSV one.
+        if path.with_extension("geojson").exists() || path.with_extension("report.json").exists() {
             continue;
         }
         let stem = path

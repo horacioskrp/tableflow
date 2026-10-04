@@ -198,6 +198,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
+ "serde_derive",
 ]
 
 [[package]]
@@ -267,10 +268,21 @@ version = "0.0.0"
 dependencies = [
  "calamine",
  "serde_json",
+ "tableflow-autoreport",
  "tableflow-core",
  "tableflow-export",
  "tableflow-geojson",
  "tableflow-xlsx",
+]
+
+[[package]]
+name = "tableflow-autoreport"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tableflow-core",
+ "tableflow-schema",
 ]
 
 [[package]]
