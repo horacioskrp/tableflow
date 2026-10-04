@@ -1,0 +1,17 @@
+{
+  "title": "report",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "integer", "name": "age", "label": "Age" },
+        { "type": "decimal", "name": "score", "label": "Score" }
+      ]
+    }
+  },
+  "submissions": [
+    { "age": 20, "score": 1.5 },
+    { "age": 30, "score": 2.5 },
+    { "age": 20, "score": 2.5 },
+    { }
+  ]
+}

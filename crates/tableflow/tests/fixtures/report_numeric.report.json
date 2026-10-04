@@ -1,0 +1,33 @@
+{
+  "submissions_count": 4,
+  "fields": [
+    {
+      "name": "age",
+      "label": "age",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 1,
+        "provided": 3,
+        "show_graph": false,
+        "median": 20,
+        "mean": 23.333333333333332,
+        "mode": 20,
+        "stdev": 5.773502691896257
+      }
+    },
+    {
+      "name": "score",
+      "label": "score",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 1,
+        "provided": 3,
+        "show_graph": false,
+        "median": 2.5,
+        "mean": 2.1666666666666665,
+        "mode": 2.5,
+        "stdev": 0.5773502691896257
+      }
+    }
+  ]
+}

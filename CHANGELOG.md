@@ -82,5 +82,11 @@ to [Semantic Versioning](https://semver.org/).
   answer is split into its options); `date` orders chronologically; `select_*`
   and `date` set `show_graph`. The `tableflow::export_report` facade returns the
   serialized report; conformance compares parsed JSON (goldens `report_counts`,
-  `report_translated`). (Deferred: numeric summaries — mean / median / mode /
-  stdev for `integer` / `decimal` — and `split_by` disaggregation.)
+  `report_translated`). (Deferred: `split_by` disaggregation.)
+- Numeric report summaries: `integer` / `decimal` fields now carry `mean` /
+  `median` / `mode` / `stdev` (each `"*"` when undefined — empty data, a lone
+  value, or a non-unique mode). The sum of squared deviations is accumulated in
+  exact rational arithmetic (`num-rational` / `num-bigint`) and its square root
+  correctly rounded (a port of CPython's `statistics._float_sqrt_of_frac`), so
+  the summaries match the reference exporter bit-for-bit. New goldens
+  `report_numeric`, `report_numeric_edge`.

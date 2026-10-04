@@ -108,8 +108,11 @@ to CSV, matching the reference exporter.
       `percentage`s for categorical fields — `text` (by descending count),
       `select_one` / `select_multiple` (choice labels, by descending count),
       `date` (chronological); `select_*` and `date` set `show_graph`
+- [x] Numeric summaries for `integer` / `decimal`: `mean` / `median` / `mode` /
+      `stdev` (`"*"` when undefined), the sum of squared deviations accumulated
+      in exact rational arithmetic with a correctly-rounded square root to match
+      the reference bit-for-bit
 - [x] `tableflow::export_report` facade (serialized report)
 - [x] **GO:** report goldens match as parsed JSON (`report_counts`,
-      `report_translated`)
-- [ ] Deferred: numeric summaries (mean / median / mode / stdev for `integer` /
-      `decimal`), disaggregation (`split_by`)
+      `report_translated`, `report_numeric`, `report_numeric_edge`)
+- [ ] Deferred: disaggregation (`split_by`)
