@@ -25,3 +25,7 @@ to [Semantic Versioning](https://semver.org/).
   as their choice label, falling back to names/raw values in "names mode"
   (unspecified / untranslated / unknown language). `export_csv` gains a `lang`
   argument. Goldens: `translated_{default,en,fr}`.
+- Phase 3a group flattening: fields inside non-repeat groups flatten into the
+  main table, keeping their short name/label as the column header while reading
+  values by their full submission path (`group/field`). Goldens:
+  `grouped_{default,en}`.

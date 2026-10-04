@@ -28,7 +28,7 @@ pub fn to_csv(version: &Version, submissions: &[Value], lang: Option<&str>) -> S
         let row: Vec<String> = version
             .fields
             .iter()
-            .map(|field| tableflow_schema::cell(version, field, submission.get(&field.name), index))
+            .map(|field| tableflow_schema::cell(version, field, submission.get(&field.path), index))
             .collect();
         lines.push(format_line(&row));
     }

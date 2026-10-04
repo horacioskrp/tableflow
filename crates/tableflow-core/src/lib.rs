@@ -10,8 +10,11 @@ use serde_json::Value;
 /// A survey field — one logical column of the export.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
-    /// Field name: the submission key and the header in "names" mode.
+    /// Field name: the header in "names" mode (short, not group-prefixed).
     pub name: String,
+    /// Full submission key: the field name prefixed by any enclosing group /
+    /// repeat names, joined with `/` (e.g. `household/location`).
+    pub path: String,
     /// XLSForm `type` token (e.g. `text`, `integer`, `select_one`).
     pub kind: String,
     /// Labels indexed by [`Version::translations`]; empty when untranslated.
@@ -84,15 +87,37 @@ pub fn parse_version(schema: &Value) -> Version {
         .unwrap_or_default();
 
     let mut fields = Vec::new();
+    let mut prefix: Vec<String> = Vec::new();
     if let Some(rows) = get("survey") {
         for row in rows {
+            let kind = row.get("type").and_then(Value::as_str).unwrap_or_default();
+            // Structural markers nest the submission path; they are not fields.
+            match kind.replace(' ', "_").as_str() {
+                "begin_group" | "begin_repeat" => {
+                    if let Some(name) = row.get("name").and_then(Value::as_str) {
+                        prefix.push(name.to_owned());
+                    }
+                    continue;
+                }
+                "end_group" | "end_repeat" => {
+                    prefix.pop();
+                    continue;
+                }
+                _ => {}
+            }
+
             let name = row.get("name").and_then(Value::as_str).unwrap_or_default();
             if name.is_empty() {
                 continue;
             }
-            let kind = row.get("type").and_then(Value::as_str).unwrap_or_default();
+            let path = if prefix.is_empty() {
+                name.to_owned()
+            } else {
+                format!("{}/{name}", prefix.join("/"))
+            };
             fields.push(Field {
                 name: name.to_owned(),
+                path,
                 kind: kind.to_owned(),
                 labels: labels_of(row.get("label")),
                 list_name: list_name_of(row, kind),
