@@ -1,0 +1,22 @@
+{
+  "multiple_select": "both",
+  "version": {
+    "content": {
+      "translations": ["English", "Français"],
+      "translated": ["label"],
+      "survey": [
+        { "type": "text", "name": "q", "label": ["Q", "Q"] },
+        { "type": "select_multiple", "select_from_list_name": "col", "name": "colors", "label": ["Colors", "Couleurs"] }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "red", "label": ["Red", "Rouge"] },
+        { "list_name": "col", "name": "blue", "label": ["Blue", "Bleu"] },
+        { "list_name": "col", "name": "green", "label": ["Green", "Vert"] }
+      ]
+    }
+  },
+  "submissions": [
+    { "q": "hi", "colors": "red green" },
+    { "q": "yo", "colors": "blue" }
+  ]
+}

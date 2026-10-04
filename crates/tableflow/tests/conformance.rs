@@ -35,6 +35,10 @@ fn csv_fixtures_match_reference() {
             .expect("submissions array")
             .clone();
         let lang = input.get("lang").and_then(Value::as_str);
+        let mode = input
+            .get("multiple_select")
+            .and_then(Value::as_str)
+            .unwrap_or("both");
 
         // A `.tables` golden selects the multi-section export; otherwise `.csv`.
         let tables_path = dir.join(format!("{stem}.tables"));
@@ -44,12 +48,12 @@ fn csv_fixtures_match_reference() {
                 .and_then(Value::as_str)
                 .unwrap_or("submissions");
             (
-                tableflow::export_tables_text(version, &submissions, lang, title),
+                tableflow::export_tables_text(version, &submissions, lang, title, mode),
                 tables_path,
             )
         } else {
             (
-                tableflow::export_csv(version, &submissions, lang),
+                tableflow::export_csv(version, &submissions, lang, mode),
                 dir.join(format!("{stem}.csv")),
             )
         };

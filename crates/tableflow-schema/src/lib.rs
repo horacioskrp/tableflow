@@ -1,27 +1,55 @@
 //! Field type system: resolve the requested language and turn a submission
-//! value into an export cell.
+//! value into export column(s).
 //!
-//! Phase 2 covers header labels per language and `select_one` value→label
-//! mapping; other common types (text/integer/decimal/date/time/dateTime/geo)
-//! pass their value through as a string. `select_multiple` expansion and
-//! geo/media specifics arrive in later phases.
+//! Most fields contribute one column. A `select_one` renders its value as a
+//! choice label (in a language) or the raw name. A `select_multiple` expands
+//! per [`MultipleSelect`]: a joined summary column and/or one boolean column per
+//! choice. Other common types pass their value through as a string.
 
 use serde_json::Value;
-use tableflow_core::{Field, Version};
+use tableflow_core::{Choice, Field, Version};
 
-/// Resolve the translation index for a requested language.
-///
-/// `None` means "names mode": an unspecified/untranslated export, or a language
-/// not declared by this version — headers use field names and choice values
-/// stay raw.
+/// How `select_multiple` fields expand into columns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MultipleSelect {
+    /// A joined summary column plus one boolean column per choice.
+    Both,
+    /// Only the joined summary column.
+    Summary,
+    /// Only the per-choice boolean columns.
+    Details,
+}
+
+impl MultipleSelect {
+    /// Parse `both` / `summary` / `details` (anything else → `Both`).
+    #[must_use]
+    pub fn parse(value: &str) -> Self {
+        match value {
+            "summary" => Self::Summary,
+            "details" => Self::Details,
+            _ => Self::Both,
+        }
+    }
+
+    fn has_summary(self) -> bool {
+        matches!(self, Self::Both | Self::Summary)
+    }
+
+    fn has_details(self) -> bool {
+        matches!(self, Self::Both | Self::Details)
+    }
+}
+
+/// Resolve the translation index for a requested language (`None` = names mode:
+/// an unspecified/untranslated export or a language this version does not
+/// declare — names and raw values).
 #[must_use]
 pub fn lang_index(version: &Version, lang: Option<&str>) -> Option<usize> {
     let lang = lang?;
     version.translations.iter().position(|t| t == lang)
 }
 
-/// The column header for a field: its label in the resolved language, else its
-/// name.
+/// The header for a field: its label in the resolved language, else its name.
 #[must_use]
 pub fn header(field: &Field, lang: Option<usize>) -> String {
     match lang.and_then(|i| field.labels.get(i)) {
@@ -30,10 +58,63 @@ pub fn header(field: &Field, lang: Option<usize>) -> String {
     }
 }
 
-/// Format a submission value as a CSV cell for a field.
-///
-/// For `select_one` with a resolved language, the stored choice name is
-/// rendered as its label; otherwise the raw value is used.
+/// The column headers a field contributes.
+#[must_use]
+pub fn columns(
+    version: &Version,
+    field: &Field,
+    lang: Option<usize>,
+    mode: MultipleSelect,
+) -> Vec<String> {
+    if field.kind != "select_multiple" {
+        return vec![header(field, lang)];
+    }
+    let base = header(field, lang);
+    let mut cols = Vec::new();
+    if mode.has_summary() {
+        cols.push(base.clone());
+    }
+    if mode.has_details() {
+        for choice in choices(version, field) {
+            cols.push(format!("{base}/{}", choice_header(choice, lang)));
+        }
+    }
+    cols
+}
+
+/// The cell value(s) a field contributes for a submission value.
+#[must_use]
+pub fn values(
+    version: &Version,
+    field: &Field,
+    value: Option<&Value>,
+    lang: Option<usize>,
+    mode: MultipleSelect,
+) -> Vec<String> {
+    if field.kind != "select_multiple" {
+        return vec![cell(version, field, value, lang)];
+    }
+    let raw = scalar(value);
+    let selected: Vec<&str> = raw.split_whitespace().collect();
+    let mut out = Vec::new();
+    if mode.has_summary() {
+        let joined = selected
+            .iter()
+            .map(|name| choice_value(version, field, name, lang))
+            .collect::<Vec<_>>()
+            .join(" ");
+        out.push(joined);
+    }
+    if mode.has_details() {
+        for choice in choices(version, field) {
+            let present = selected.contains(&choice.name.as_str());
+            out.push(if present { "1" } else { "0" }.to_owned());
+        }
+    }
+    out
+}
+
+/// Format a single (non-`select_multiple`) field value as a cell.
 #[must_use]
 pub fn cell(
     version: &Version,
@@ -43,13 +124,35 @@ pub fn cell(
 ) -> String {
     let raw = scalar(value);
     if field.kind == "select_one" && !raw.is_empty() {
-        if let (Some(index), Some(list)) = (lang, field.list_name.as_deref()) {
-            if let Some(label) = version.choice_label(list, &raw, index) {
-                return label.to_owned();
-            }
-        }
+        return choice_value(version, field, &raw, lang);
     }
     raw
+}
+
+/// Render one choice name as its label (in a language) or the raw name.
+fn choice_value(version: &Version, field: &Field, name: &str, lang: Option<usize>) -> String {
+    if let (Some(index), Some(list)) = (lang, field.list_name.as_deref()) {
+        if let Some(label) = version.choice_label(list, name, index) {
+            return label.to_owned();
+        }
+    }
+    name.to_owned()
+}
+
+/// A choice's header: its label in the resolved language, else its name.
+fn choice_header(choice: &Choice, lang: Option<usize>) -> String {
+    match lang.and_then(|i| choice.labels.get(i)) {
+        Some(label) if !label.is_empty() => label.clone(),
+        _ => choice.name.clone(),
+    }
+}
+
+/// The options of a select field's list.
+fn choices<'a>(version: &'a Version, field: &Field) -> &'a [Choice] {
+    field
+        .list_name
+        .as_deref()
+        .map_or(&[], |list| version.choices_of(list))
 }
 
 /// Stringify a scalar submission value (missing/null → empty).
