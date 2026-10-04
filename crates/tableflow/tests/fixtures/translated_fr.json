@@ -1,0 +1,23 @@
+{
+  "lang": "Français",
+  "version": {
+    "content": {
+      "translations": ["English", "Français"],
+      "translated": ["label"],
+      "survey": [
+        { "type": "text", "name": "nom", "label": ["Name", "Nom"] },
+        { "type": "integer", "name": "age", "label": ["Age", "Âge"] },
+        { "type": "select_one", "select_from_list_name": "color", "name": "couleur", "label": ["Color", "Couleur"] },
+        { "type": "date", "name": "d", "label": ["Date", "Date"] }
+      ],
+      "choices": [
+        { "list_name": "color", "name": "red", "label": ["Red", "Rouge"] },
+        { "list_name": "color", "name": "blue", "label": ["Blue", "Bleu"] }
+      ]
+    }
+  },
+  "submissions": [
+    { "nom": "Alice", "age": 30, "couleur": "red", "d": "2024-01-02" },
+    { "nom": "Bob", "age": 25, "couleur": "blue", "d": "2024-03-04" }
+  ]
+}
