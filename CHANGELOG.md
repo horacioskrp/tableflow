@@ -36,3 +36,10 @@ to [Semantic Versioning](https://semver.org/).
   now emits the main section with its `_index` column when repeats are present.
   Multi-section golden `repeat_tables`. (Deferred: `hierarchy_in_labels`, nested
   repeats beyond one level.)
+- Phase 4 `select_multiple` expansion: `tableflow-schema` now maps each field to
+  one or more columns via `columns` / `values`, driven by a `MultipleSelect`
+  mode (`both` / `summary` / `details`). A joined summary column (choice names,
+  or labels in a language) and/or one `field/choice` boolean (`1`/`0`) column
+  per option; headers honor the language. `export_csv` / `export_tables_text`
+  gain a `multiple_select` argument. Goldens: `selmulti_{both,summary,details}`,
+  `selmulti_en_both`. (Deferred: `or_other`.)

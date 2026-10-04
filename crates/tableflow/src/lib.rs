@@ -1,7 +1,11 @@
 //! tableflow: turn form submissions into tabular exports.
 //!
-//! End-to-end facade over the pipeline. Phase 1–2 expose a flat, single-version
-//! CSV export in a chosen language; richer formats and structure arrive later.
+//! End-to-end facade over the pipeline. Phase 1–4 expose CSV and multi-section
+//! exports in a chosen language, with `select_multiple` expansion; richer
+//! formats arrive later.
+//!
+//! `multiple_select` is `"both"` (a joined summary column plus one boolean
+//! column per choice), `"summary"`, or `"details"`.
 //!
 //! # Example
 //!
@@ -21,14 +25,12 @@
 //! } });
 //! let submissions = [json!({ "name": "Alice", "col": "r" })];
 //!
-//! // Names mode (no language): headers are field names, choice value is raw.
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, None),
+//!     tableflow::export_csv(&version, &submissions, None, "both"),
 //!     "\"name\";\"col\"\n\"Alice\";\"r\"",
 //! );
-//! // French: headers and the choice value are translated.
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, Some("Français")),
+//!     tableflow::export_csv(&version, &submissions, Some("Français"), "both"),
 //!     "\"Votre nom\";\"Couleur\"\n\"Alice\";\"Rouge\"",
 //! );
 //! ```
@@ -38,14 +40,25 @@ use serde_json::Value;
 #[doc(inline)]
 pub use tableflow_core::{Choice, ChoiceList, Field, Section, Version, parse_version};
 #[doc(inline)]
-pub use tableflow_export::Table;
+pub use tableflow_export::{MultipleSelect, Table};
 
 /// Parse a version schema and export the main section's submissions as CSV in
-/// language `lang` (`None` = names mode).
+/// language `lang` (`None` = names mode). `multiple_select` is
+/// `"both"` / `"summary"` / `"details"`.
 #[must_use]
-pub fn export_csv(version_schema: &Value, submissions: &[Value], lang: Option<&str>) -> String {
+pub fn export_csv(
+    version_schema: &Value,
+    submissions: &[Value],
+    lang: Option<&str>,
+    multiple_select: &str,
+) -> String {
     let version = parse_version(version_schema);
-    tableflow_export::to_csv(&version, submissions, lang)
+    tableflow_export::to_csv(
+        &version,
+        submissions,
+        lang,
+        MultipleSelect::parse(multiple_select),
+    )
 }
 
 /// Parse a version schema and export every section (main + repeats) as a framed
@@ -56,8 +69,15 @@ pub fn export_tables_text(
     submissions: &[Value],
     lang: Option<&str>,
     title: &str,
+    multiple_select: &str,
 ) -> String {
     let version = parse_version(version_schema);
-    let tables = tableflow_export::export_tables(&version, submissions, lang, title);
+    let tables = tableflow_export::export_tables(
+        &version,
+        submissions,
+        lang,
+        title,
+        MultipleSelect::parse(multiple_select),
+    );
     tableflow_export::tables_to_text(&tables)
 }

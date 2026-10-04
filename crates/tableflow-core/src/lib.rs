@@ -87,6 +87,15 @@ impl Default for Version {
 }
 
 impl Version {
+    /// The options of choice list `list` (empty if the list is unknown).
+    #[must_use]
+    pub fn choices_of(&self, list: &str) -> &[Choice] {
+        self.choices
+            .iter()
+            .find(|c| c.name == list)
+            .map_or(&[], |c| c.items.as_slice())
+    }
+
     /// The label of choice `name` in list `list` for translation `index`.
     #[must_use]
     pub fn choice_label(&self, list: &str, name: &str, index: usize) -> Option<&str> {
