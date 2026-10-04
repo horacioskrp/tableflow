@@ -9,5 +9,13 @@ repository.workspace = true
 description = "Turn form submissions into tabular exports (CSV, XLSX, GeoJSON) — end-to-end facade."
 readme = "README.md"
 
+[dependencies]
+tableflow-core.workspace = true
+tableflow-export.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
 [lints]
 workspace = true

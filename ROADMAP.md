@@ -6,8 +6,8 @@ exporter (after format-aware normalization) and CI is green.
 
 | Phase | Theme | Status |
 | ----- | ----------------------------------------------------- | ------ |
-| 0 | Workspace, CI, Docker & conformance harness | 🚧 in progress |
-| 1 | Walking skeleton — one version → CSV of a flat form | ☐ |
+| 0 | Workspace, CI, Docker & conformance harness | ✅ done |
+| 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
 | 2 | Field type system & translations | ☐ |
 | 3 | Groups & repeats → linked tables | ☐ |
 | 4 | `select_multiple` expansion | ☐ |
@@ -21,18 +21,19 @@ exporter (after format-aware normalization) and CI is green.
 - [x] Cargo workspace (edition 2024), pipeline crates, CLI scaffold
 - [x] `.gitattributes` (LF), CI (`fmt` / `clippy -D warnings` / `build` / `test`)
 - [x] Docker build wrapper (`scripts/docker-dev.ps1`)
-- [ ] Conformance harness: a data-driven runner that compares a generated
-      export against its golden after format-aware normalization
-- [ ] **GO:** green `build` / `test` / `clippy` / `fmt`
+- [x] Conformance harness: a data-driven runner (`csv_fixtures_match_reference`)
+      that compares each fixture's export against its committed golden
+- [x] **GO:** green `build` / `test` / `clippy` / `fmt`
 
 ## Phase 1 — Walking skeleton
 
 A flat, single-version, single-language form with simple question types exports
 to CSV, matching the reference exporter.
 
-- [ ] Load one version's content into the model (sections + fields)
-- [ ] Map submissions onto the field canvas; emit CSV rows
-- [ ] **GO:** the simplest form's CSV golden matches
+- [x] Load one version's content into the model (fields)
+- [x] Map submissions onto the field canvas; emit CSV rows (`;`-separated,
+      every field quoted, quotes doubled; default header = field names)
+- [x] **GO:** the simplest form's CSV golden matches (`simple_flat` fixture)
 
 ## Phase 2 — Field types & translations
 
