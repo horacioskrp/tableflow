@@ -11,7 +11,7 @@ exporter (after format-aware normalization) and CI is green.
 | 2 | Field type system & translations | ✅ done |
 | 3 | Groups & repeats → linked tables | ✅ done |
 | 4 | `select_multiple` expansion | ✅ done |
-| 5 | Multi-version field canvas | ☐ |
+| 5 | Multi-version field canvas | ✅ done |
 | 6 | XLSX output & header options | ☐ |
 | 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
 | 8 | Automatic per-field report | ☐ |
@@ -64,11 +64,16 @@ to CSV, matching the reference exporter.
       (`selmulti_{both,summary,details}`, `selmulti_en_both`)
 - [ ] Deferred: `or_other` synthetic option/column
 
-## Phase 5 — Multiple versions
+## Phase 5 — Multiple versions ✅
 
-- [ ] Merge fields added / removed / edited across versions into one column
-      canvas; version-id handling
-- [ ] **GO:** multi-version goldens match
+- [x] `merge_versions` builds one column canvas from several versions: the
+      newest listed version's fields lead, then each older version appends only
+      its fields whose names are not yet present
+- [x] `export_csv_versions` facade; submissions fill the columns they carry and
+      leave the rest blank, so rows from any version coexist
+- [x] **GO:** multi-version goldens match (`multiversion`, `multiversion_reversed`)
+- [ ] Deferred: cross-version repeat merging, and per-version field paths that
+      differ for the same field name (only the main section is merged)
 
 ## Phase 6 — XLSX & header options
 
