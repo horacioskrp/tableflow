@@ -24,6 +24,9 @@ pub struct Field {
     pub labels: Vec<String>,
     /// Choice list name, for `select_one` / `select_multiple`.
     pub list_name: Option<String>,
+    /// Whether the select offers a free-text "other" option (`or_other`); adds
+    /// an `/other` details column for `select_multiple`.
+    pub or_other: bool,
 }
 
 /// A table of the export: the main section (index 0) or a repeat.
@@ -227,14 +230,60 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
             format!("{}/{name}", prefix.join("/"))
         };
         let current = *stack.last().expect("non-empty stack");
+        let (stripped, type_or_other) = split_or_other(kind);
+        let base_kind = stripped
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+            .to_owned();
+        let or_other = type_or_other
+            || row
+                .get("or_other")
+                .or_else(|| row.get("_or_other"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+
         sections[current].fields.push(Field {
             name: name.to_owned(),
-            path,
-            kind: kind.to_owned(),
+            path: path.clone(),
+            kind: base_kind.clone(),
             labels: labels_of(row.get("label")),
-            list_name: list_name_of(row, kind),
+            list_name: list_name_of(row, &stripped),
+            or_other,
         });
+
+        // `or_other` selects carry a companion free-text field `<name>_other`.
+        if or_other && (base_kind == "select_one" || base_kind == "select_multiple") {
+            sections[current].fields.push(Field {
+                name: format!("{name}_other"),
+                path: format!("{path}_other"),
+                kind: "text".to_owned(),
+                labels: Vec::new(),
+                list_name: None,
+                or_other: false,
+            });
+        }
     }
+}
+
+/// Split a `type` string into its base type and whether it declares `or_other`
+/// (via a trailing ` or_other` / ` or-other`, or a `select_*_or_other` form).
+fn split_or_other(type_str: &str) -> (String, bool) {
+    let mut base = type_str.trim().to_owned();
+    let mut or_other = false;
+
+    if let Some(index) = base.rfind(char::is_whitespace) {
+        let tail = base[index..].trim();
+        if tail == "or_other" || tail == "or-other" {
+            or_other = true;
+            base = base[..index].trim().to_owned();
+        }
+    }
+    if base.contains("_or_other") {
+        or_other = true;
+        base = base.replace("_or_other", "");
+    }
+    (base, or_other)
 }
 
 /// Parse `content.choices` into choice lists, grouped by `list_name`.
