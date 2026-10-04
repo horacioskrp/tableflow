@@ -1,0 +1,26 @@
+{
+  "title": "report",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "city", "label": "City" },
+        { "type": "select_one", "select_from_list_name": "col", "name": "fav", "label": "Favourite" },
+        { "type": "select_multiple", "select_from_list_name": "lng", "name": "langs", "label": "Languages" },
+        { "type": "date", "name": "d", "label": "Day" },
+        { "type": "note", "name": "hint", "label": "Just a note" }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "red", "label": "Red" },
+        { "list_name": "col", "name": "blue", "label": "Blue" },
+        { "list_name": "lng", "name": "fr", "label": "French" },
+        { "list_name": "lng", "name": "en", "label": "English" }
+      ]
+    }
+  },
+  "submissions": [
+    { "city": "Lome", "fav": "red", "langs": "fr en", "d": "2024-03-04" },
+    { "city": "Lome", "fav": "blue", "langs": "fr", "d": "2024-01-02" },
+    { "city": "Kara", "fav": "red", "d": "2024-01-02" },
+    { "city": "Lome" }
+  ]
+}

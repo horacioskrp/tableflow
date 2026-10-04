@@ -14,6 +14,7 @@ tableflow-core.workspace = true
 tableflow-export.workspace = true
 tableflow-xlsx.workspace = true
 tableflow-geojson.workspace = true
+tableflow-autoreport.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]

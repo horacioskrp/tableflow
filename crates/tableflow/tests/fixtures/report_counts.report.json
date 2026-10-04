@@ -1,0 +1,125 @@
+{
+  "submissions_count": 4,
+  "fields": [
+    {
+      "name": "city",
+      "label": "city",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 0,
+        "provided": 4,
+        "show_graph": false,
+        "frequency": [
+          [
+            "Lome",
+            3
+          ],
+          [
+            "Kara",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "Lome",
+            75.0
+          ],
+          [
+            "Kara",
+            25.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "fav",
+      "label": "fav",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 1,
+        "provided": 3,
+        "show_graph": true,
+        "frequency": [
+          [
+            "red",
+            2
+          ],
+          [
+            "blue",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "red",
+            50.0
+          ],
+          [
+            "blue",
+            25.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "langs",
+      "label": "langs",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 2,
+        "provided": 2,
+        "show_graph": true,
+        "frequency": [
+          [
+            "fr",
+            2
+          ],
+          [
+            "en",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "fr",
+            50.0
+          ],
+          [
+            "en",
+            25.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "d",
+      "label": "d",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 1,
+        "provided": 3,
+        "show_graph": true,
+        "frequency": [
+          [
+            "2024-01-02",
+            2
+          ],
+          [
+            "2024-03-04",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "2024-01-02",
+            50.0
+          ],
+          [
+            "2024-03-04",
+            25.0
+          ]
+        ]
+      }
+    }
+  ]
+}
