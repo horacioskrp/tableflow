@@ -9,7 +9,7 @@ exporter (after format-aware normalization) and CI is green.
 | 0 | Workspace, CI, Docker & conformance harness | ✅ done |
 | 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
 | 2 | Field type system & translations | ✅ done |
-| 3 | Groups & repeats → linked tables | 🚧 in progress |
+| 3 | Groups & repeats → linked tables | ✅ done |
 | 4 | `select_multiple` expansion | ☐ |
 | 5 | Multi-version field canvas | ☐ |
 | 6 | XLSX output & header options | ☐ |
@@ -43,15 +43,17 @@ to CSV, matching the reference exporter.
       (unspecified/untranslated/unknown language) keeps names and raw values
 - [x] **GO:** translated CSV goldens match (`translated_{default,en,fr}`)
 
-## Phase 3 — Groups & repeats 🚧
+## Phase 3 — Groups & repeats ✅
 
 - [x] 3a — Non-repeat groups: fields flatten into the main table, keeping their
       short name/label as header and reading values by full submission path
       (`grouped_{default,en}`)
-- [ ] 3b — Each repeat becomes its own table, linked by `_index` /
-      `_parent_index` / `_parent_table_name`; multi-section conformance
-- [ ] `group_sep` / `hierarchy_in_labels` label options
-- [ ] **GO:** grouped / (nested) repeatable goldens match
+- [x] 3b — Each repeat becomes its own table (`Section` model + `export_tables`),
+      linked by `_index` / `_parent_table_name` / `_parent_index`; multi-section
+      conformance via a framed `.tables` golden (`repeat_tables`)
+- [x] **GO:** grouped and repeatable goldens match
+- [ ] Deferred: `hierarchy_in_labels` (group-label-prefixed headers) and nested
+      repeats beyond one level
 
 ## Phase 4 — `select_multiple`
 

@@ -36,12 +36,28 @@
 use serde_json::Value;
 
 #[doc(inline)]
-pub use tableflow_core::{Choice, ChoiceList, Field, Version, parse_version};
+pub use tableflow_core::{Choice, ChoiceList, Field, Section, Version, parse_version};
+#[doc(inline)]
+pub use tableflow_export::Table;
 
-/// Parse a version schema and export its submissions as CSV in language `lang`
-/// (`None` = names mode).
+/// Parse a version schema and export the main section's submissions as CSV in
+/// language `lang` (`None` = names mode).
 #[must_use]
 pub fn export_csv(version_schema: &Value, submissions: &[Value], lang: Option<&str>) -> String {
     let version = parse_version(version_schema);
     tableflow_export::to_csv(&version, submissions, lang)
+}
+
+/// Parse a version schema and export every section (main + repeats) as a framed
+/// multi-section text, with `title` naming the main table.
+#[must_use]
+pub fn export_tables_text(
+    version_schema: &Value,
+    submissions: &[Value],
+    lang: Option<&str>,
+    title: &str,
+) -> String {
+    let version = parse_version(version_schema);
+    let tables = tableflow_export::export_tables(&version, submissions, lang, title);
+    tableflow_export::tables_to_text(&tables)
 }
