@@ -1,0 +1,18 @@
+{
+  "title": "report",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "integer", "name": "single", "label": "Single" },
+        { "type": "integer", "name": "tied", "label": "Tied" },
+        { "type": "integer", "name": "empty", "label": "Empty" }
+      ]
+    }
+  },
+  "submissions": [
+    { "single": 5, "tied": 1 },
+    { "tied": 1 },
+    { "tied": 2 },
+    { "tied": 2 }
+  ]
+}

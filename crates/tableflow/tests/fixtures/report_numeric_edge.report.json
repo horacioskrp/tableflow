@@ -1,0 +1,47 @@
+{
+  "submissions_count": 4,
+  "fields": [
+    {
+      "name": "single",
+      "label": "single",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 3,
+        "provided": 1,
+        "show_graph": false,
+        "median": 5,
+        "mean": 5,
+        "mode": "*",
+        "stdev": "*"
+      }
+    },
+    {
+      "name": "tied",
+      "label": "tied",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 0,
+        "provided": 4,
+        "show_graph": false,
+        "median": 1.5,
+        "mean": 1.5,
+        "mode": "*",
+        "stdev": 0.5773502691896257
+      }
+    },
+    {
+      "name": "empty",
+      "label": "empty",
+      "stats": {
+        "total_count": 4,
+        "not_provided": 4,
+        "provided": 0,
+        "show_graph": false,
+        "median": "*",
+        "mean": "*",
+        "mode": "*",
+        "stdev": "*"
+      }
+    }
+  ]
+}

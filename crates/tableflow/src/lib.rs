@@ -152,9 +152,7 @@ pub fn export_geojson(
 }
 
 /// Parse a version schema and build a per-field summary report (counts,
-/// frequencies and percentages), serialized as JSON.
-///
-/// Numeric summaries for `integer` / `decimal` fields are not yet produced.
+/// frequencies, percentages and numeric summaries), serialized as JSON.
 #[must_use]
 pub fn export_report(version_schema: &Value, submissions: &[Value], lang: Option<&str>) -> String {
     let version = parse_version(version_schema);
