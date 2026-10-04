@@ -1,0 +1,29 @@
+{
+  "sheets": [
+    {
+      "name": "submissions",
+      "rows": [
+        [
+          "name",
+          "age",
+          "score"
+        ],
+        [
+          "Alice",
+          "30",
+          "9.5"
+        ],
+        [
+          "Bob \"the builder\"",
+          "25",
+          "7"
+        ],
+        [
+          "Chloé",
+          "",
+          ""
+        ]
+      ]
+    }
+  ]
+}
