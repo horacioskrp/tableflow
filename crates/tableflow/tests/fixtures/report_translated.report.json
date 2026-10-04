@@ -1,0 +1,35 @@
+{
+  "submissions_count": 3,
+  "fields": [
+    {
+      "name": "fav",
+      "label": "Préférée",
+      "stats": {
+        "total_count": 3,
+        "not_provided": 0,
+        "provided": 3,
+        "show_graph": true,
+        "frequency": [
+          [
+            "Rouge",
+            2
+          ],
+          [
+            "Bleu",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "Rouge",
+            66.67
+          ],
+          [
+            "Bleu",
+            33.33
+          ]
+        ]
+      }
+    }
+  ]
+}

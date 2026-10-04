@@ -14,7 +14,7 @@ exporter (after format-aware normalization) and CI is green.
 | 5 | Multi-version field canvas | ✅ done |
 | 6 | XLSX output & header options | ✅ done |
 | 7 | GeoJSON (KML / SPSS deferred) | ✅ done |
-| 8 | Automatic per-field report | ☐ |
+| 8 | Automatic per-field report | ✅ done |
 
 ## Phase 0 — Workspace & harness ✅
 
@@ -101,7 +101,15 @@ to CSV, matching the reference exporter.
 - [ ] Deferred: KML (reference output comes from an external converter), SPSS
       value-label files (binary `.sav`), base64 attachments
 
-## Phase 8 — Automatic report
+## Phase 8 — Automatic report ✅
 
-- [ ] Per-field statistics (counts, frequencies, numeric summaries)
-- [ ] **GO:** auto-report goldens match
+- [x] Per-field summary (`tableflow-autoreport`): `provided` / `not_provided` /
+      `total_count` for every field; a `frequency` table and matching
+      `percentage`s for categorical fields — `text` (by descending count),
+      `select_one` / `select_multiple` (choice labels, by descending count),
+      `date` (chronological); `select_*` and `date` set `show_graph`
+- [x] `tableflow::export_report` facade (serialized report)
+- [x] **GO:** report goldens match as parsed JSON (`report_counts`,
+      `report_translated`)
+- [ ] Deferred: numeric summaries (mean / median / mode / stdev for `integer` /
+      `decimal`), disaggregation (`split_by`)

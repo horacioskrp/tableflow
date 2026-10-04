@@ -1,0 +1,22 @@
+{
+  "title": "report",
+  "lang": "Français",
+  "version": {
+    "content": {
+      "translations": ["English", "Français"],
+      "translated": ["label"],
+      "survey": [
+        { "type": "select_one", "select_from_list_name": "col", "name": "fav", "label": ["Favourite", "Préférée"] }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "red", "label": ["Red", "Rouge"] },
+        { "list_name": "col", "name": "blue", "label": ["Blue", "Bleu"] }
+      ]
+    }
+  },
+  "submissions": [
+    { "fav": "red" },
+    { "fav": "blue" },
+    { "fav": "red" }
+  ]
+}

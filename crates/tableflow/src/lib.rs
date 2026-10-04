@@ -1,9 +1,10 @@
 //! tableflow: turn form submissions into tabular exports.
 //!
-//! End-to-end facade over the pipeline. Phase 1–7 expose CSV, multi-section
-//! text, `.xlsx` ([`export_xlsx`]) and GeoJSON ([`export_geojson`]) exports in a
-//! chosen language, with `select_multiple` expansion and a multi-version field
-//! canvas ([`export_csv_versions`]); richer formats arrive later.
+//! End-to-end facade over the pipeline. It exposes CSV, multi-section text,
+//! `.xlsx` ([`export_xlsx`]) and GeoJSON ([`export_geojson`]) exports in a
+//! chosen language — with `select_multiple` expansion and a multi-version field
+//! canvas ([`export_csv_versions`]) — plus a per-field summary report
+//! ([`export_report`]).
 //!
 //! `multiple_select` is `"both"` (a joined summary column plus one boolean
 //! column per choice), `"summary"`, or `"details"`.
@@ -148,4 +149,15 @@ pub fn export_geojson(
 ) -> String {
     let version = parse_version(version_schema);
     tableflow_geojson::to_geojson(&version, submissions, lang, title).to_string()
+}
+
+/// Parse a version schema and build a per-field summary report (counts,
+/// frequencies and percentages), serialized as JSON.
+///
+/// Numeric summaries for `integer` / `decimal` fields are not yet produced.
+#[must_use]
+pub fn export_report(version_schema: &Value, submissions: &[Value], lang: Option<&str>) -> String {
+    let version = parse_version(version_schema);
+    let report = tableflow_autoreport::report(&version, submissions, lang);
+    serde_json::to_string(&report).unwrap_or_default()
 }
