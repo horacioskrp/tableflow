@@ -12,10 +12,12 @@ readme = "README.md"
 [dependencies]
 tableflow-core.workspace = true
 tableflow-export.workspace = true
+tableflow-xlsx.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
+calamine.workspace = true
 
 [lints]
 workspace = true

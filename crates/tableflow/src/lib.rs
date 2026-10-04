@@ -1,9 +1,9 @@
 //! tableflow: turn form submissions into tabular exports.
 //!
-//! End-to-end facade over the pipeline. Phase 1–5 expose CSV and multi-section
-//! exports in a chosen language, with `select_multiple` expansion and a
-//! multi-version field canvas ([`export_csv_versions`]); richer formats arrive
-//! later.
+//! End-to-end facade over the pipeline. Phase 1–6 expose CSV, multi-section
+//! text and `.xlsx` exports ([`export_xlsx`]) in a chosen language, with
+//! `select_multiple` expansion and a multi-version field canvas
+//! ([`export_csv_versions`]); richer formats arrive later.
 //!
 //! `multiple_select` is `"both"` (a joined summary column plus one boolean
 //! column per choice), `"summary"`, or `"details"`.
@@ -44,6 +44,8 @@ pub use tableflow_core::{
 };
 #[doc(inline)]
 pub use tableflow_export::{MultipleSelect, Table};
+#[doc(inline)]
+pub use tableflow_xlsx::XlsxError;
 
 /// Parse a version schema and export the main section's submissions as CSV in
 /// language `lang` (`None` = names mode). `multiple_select` is
@@ -106,4 +108,30 @@ pub fn export_tables_text(
         MultipleSelect::parse(multiple_select),
     );
     tableflow_export::tables_to_text(&tables)
+}
+
+/// Parse a version schema and export every section (main + repeats) as an
+/// `.xlsx` workbook (one worksheet per table), returned as bytes.
+///
+/// `title` names the main worksheet. Every cell is written as text.
+///
+/// # Errors
+///
+/// Returns [`XlsxError`] if the workbook cannot be built.
+pub fn export_xlsx(
+    version_schema: &Value,
+    submissions: &[Value],
+    lang: Option<&str>,
+    title: &str,
+    multiple_select: &str,
+) -> Result<Vec<u8>, XlsxError> {
+    let version = parse_version(version_schema);
+    let tables = tableflow_export::export_tables(
+        &version,
+        submissions,
+        lang,
+        title,
+        MultipleSelect::parse(multiple_select),
+    );
+    tableflow_xlsx::to_xlsx(&tables)
 }

@@ -22,6 +22,10 @@ fn csv_fixtures_match_reference() {
         if path.extension().and_then(|e| e.to_str()) != Some("json") {
             continue;
         }
+        // `<name>.xlsx.json` goldens belong to the XLSX conformance test.
+        if path.to_string_lossy().ends_with(".xlsx.json") {
+            continue;
+        }
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())
