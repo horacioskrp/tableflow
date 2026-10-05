@@ -97,6 +97,12 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- `split_by` report disaggregation: `export_report` gains an optional split
+  field; each other field's stats become `values: [[answer, {frequency,
+  percentage}]]` broken down across the split field's top-5 values (with a
+  trailing `…` bucket when it has more), the split field itself omitted.
+  Categorical fields only; numeric per-splitter substats remain deferred. New
+  golden `report_split`.
 - Nested repeats: a repeat inside a repeat now exports as its own linked table,
   with each level's `_index` / `_parent_table_name` / `_parent_index` resolved
   through the section tree (already supported by the model; locked by the new

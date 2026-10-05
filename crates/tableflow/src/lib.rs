@@ -167,9 +167,17 @@ pub fn export_geojson(
 
 /// Parse a version schema and build a per-field summary report (counts,
 /// frequencies, percentages and numeric summaries), serialized as JSON.
+///
+/// When `split_by` names a field, each other field is disaggregated by that
+/// field's values.
 #[must_use]
-pub fn export_report(version_schema: &Value, submissions: &[Value], lang: Option<&str>) -> String {
+pub fn export_report(
+    version_schema: &Value,
+    submissions: &[Value],
+    lang: Option<&str>,
+    split_by: Option<&str>,
+) -> String {
     let version = parse_version(version_schema);
-    let report = tableflow_autoreport::report(&version, submissions, lang);
+    let report = tableflow_autoreport::report(&version, submissions, lang, split_by);
     serde_json::to_string(&report).unwrap_or_default()
 }
