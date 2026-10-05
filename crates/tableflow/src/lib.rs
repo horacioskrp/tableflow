@@ -28,11 +28,11 @@
 //! let submissions = [json!({ "name": "Alice", "col": "r" })];
 //!
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, None, "both"),
+//!     tableflow::export_csv(&version, &submissions, None, "both", &[]),
 //!     "\"name\";\"col\"\n\"Alice\";\"r\"",
 //! );
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, Some("Français"), "both"),
+//!     tableflow::export_csv(&version, &submissions, Some("Français"), "both", &[]),
 //!     "\"Votre nom\";\"Couleur\"\n\"Alice\";\"Rouge\"",
 //! );
 //! ```
@@ -57,6 +57,7 @@ pub fn export_csv(
     submissions: &[Value],
     lang: Option<&str>,
     multiple_select: &str,
+    copy_fields: &[&str],
 ) -> String {
     let version = parse_version(version_schema);
     tableflow_export::to_csv(
@@ -64,6 +65,7 @@ pub fn export_csv(
         submissions,
         lang,
         MultipleSelect::parse(multiple_select),
+        copy_fields,
     )
 }
 
@@ -87,6 +89,7 @@ pub fn export_csv_versions(
         submissions,
         lang,
         MultipleSelect::parse(multiple_select),
+        &[],
     )
 }
 
@@ -99,6 +102,7 @@ pub fn export_tables_text(
     lang: Option<&str>,
     title: &str,
     multiple_select: &str,
+    copy_fields: &[&str],
 ) -> String {
     let version = parse_version(version_schema);
     let tables = tableflow_export::export_tables(
@@ -107,6 +111,7 @@ pub fn export_tables_text(
         lang,
         title,
         MultipleSelect::parse(multiple_select),
+        copy_fields,
     );
     tableflow_export::tables_to_text(&tables)
 }
@@ -125,6 +130,7 @@ pub fn export_xlsx(
     lang: Option<&str>,
     title: &str,
     multiple_select: &str,
+    copy_fields: &[&str],
 ) -> Result<Vec<u8>, XlsxError> {
     let version = parse_version(version_schema);
     let tables = tableflow_export::export_tables(
@@ -133,6 +139,7 @@ pub fn export_xlsx(
         lang,
         title,
         MultipleSelect::parse(multiple_select),
+        copy_fields,
     );
     tableflow_xlsx::to_xlsx(&tables)
 }
