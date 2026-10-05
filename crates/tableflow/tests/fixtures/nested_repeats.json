@@ -1,0 +1,31 @@
+{
+  "title": "HH",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "hh", "label": "HH" },
+        { "type": "begin_repeat", "name": "members", "label": "M" },
+        { "type": "text", "name": "mname", "label": "MN" },
+        { "type": "begin_repeat", "name": "pets", "label": "P" },
+        { "type": "text", "name": "pname", "label": "PN" },
+        { "type": "end_repeat" },
+        { "type": "end_repeat" }
+      ]
+    }
+  },
+  "submissions": [
+    {
+      "hh": "A",
+      "members": [
+        {
+          "members/mname": "x",
+          "members/pets": [
+            { "members/pets/pname": "rex" },
+            { "members/pets/pname": "bo" }
+          ]
+        },
+        { "members/mname": "y" }
+      ]
+    }
+  ]
+}
