@@ -114,8 +114,10 @@ to [Semantic Versioning](https://semver.org/).
   field; each other field's stats become `values: [[answer, {frequency,
   percentage}]]` broken down across the split field's top-5 values (with a
   trailing `…` bucket when it has more), the split field itself omitted.
-  Categorical fields only; numeric per-splitter substats remain deferred. New
-  golden `report_split`.
+  New golden `report_split`.
+- Numeric `split_by`: `integer` / `decimal` fields disaggregated by a split
+  field now carry per-splitter `{median, mean, mode, stdev}` (the same exact
+  numeric summary, computed per group). New golden `report_split_numeric`.
 - Nested repeats: a repeat inside a repeat now exports as its own linked table,
   with each level's `_index` / `_parent_table_name` / `_parent_index` resolved
   through the section tree (already supported by the model; locked by the new

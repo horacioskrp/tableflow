@@ -154,6 +154,122 @@ fn field_tokens(field: &Field, submission: &Value) -> Option<Vec<String>> {
     }
 }
 
+/// A sentinel splitter key for submissions missing the split value.
+const MISSING_SPLITTER: &str = "\u{0}none";
+
+/// The split field's values, most common first (capped at 5), and whether an
+/// ellipsis bucket is needed (there were five or more distinct values).
+fn top_splitters(split: &Field, submissions: &[Value]) -> (Vec<String>, bool) {
+    let mut order: Vec<String> = Vec::new();
+    let mut counts: Vec<u64> = Vec::new();
+    for submission in submissions {
+        let Some(value) = submission.get(&split.path) else {
+            continue;
+        };
+        if value.is_null() {
+            continue;
+        }
+        let value = scalar(value);
+        match order.iter().position(|s| s == &value) {
+            Some(i) => counts[i] += 1,
+            None => {
+                order.push(value);
+                counts.push(1);
+            }
+        }
+    }
+    let mut pairs: Vec<(String, u64)> = order.into_iter().zip(counts).collect();
+    pairs.sort_by_key(|s| std::cmp::Reverse(s.1));
+    let top: Vec<String> = pairs.into_iter().take(5).map(|(s, _)| s).collect();
+    let add_ellipsis = top.len() == 5;
+    (top, add_ellipsis)
+}
+
+/// The split value of a submission, or the missing-splitter sentinel.
+fn splitter_key(split: &Field, submission: &Value) -> String {
+    match submission.get(&split.path) {
+        Some(value) if !value.is_null() => scalar(value),
+        _ => MISSING_SPLITTER.to_owned(),
+    }
+}
+
+/// Disaggregated statistics for a numeric field, broken down by `split`: each
+/// splitter paired with its `{median, mean, mode, stdev}`.
+fn disaggregated_numeric(
+    version: &Version,
+    field: &Field,
+    split: &Field,
+    submissions: &[Value],
+    index: Option<usize>,
+) -> Stats {
+    let integer = field.kind == "integer";
+    let mut provided = 0;
+    let mut not_provided = 0;
+    let mut key_order: Vec<String> = Vec::new();
+    let mut key_ints: Vec<Vec<i64>> = Vec::new();
+    let mut key_floats: Vec<Vec<f64>> = Vec::new();
+
+    for submission in submissions {
+        match submission
+            .get(&field.path)
+            .and_then(|v| parse_number(v, integer))
+        {
+            Some(number) => {
+                provided += 1;
+                let key = splitter_key(split, submission);
+                let i = match key_order.iter().position(|k| k == &key) {
+                    Some(i) => i,
+                    None => {
+                        key_order.push(key);
+                        key_ints.push(Vec::new());
+                        key_floats.push(Vec::new());
+                        key_order.len() - 1
+                    }
+                };
+                match number {
+                    Number::Int(n) => key_ints[i].push(n),
+                    Number::Float(n) => key_floats[i].push(n),
+                }
+            }
+            None => not_provided += 1,
+        }
+    }
+
+    let (top, add_ellipsis) = top_splitters(split, submissions);
+    let summary = |ints: Vec<i64>, floats: Vec<f64>| {
+        let (median, mean, mode, stdev) = numeric_summary(ints, floats, integer);
+        json!({ "median": median, "mean": mean, "mode": mode, "stdev": stdev })
+    };
+
+    let mut values: Vec<(String, Value)> = Vec::new();
+    for splitter in &top {
+        let (ints, floats) = key_order
+            .iter()
+            .position(|k| k == splitter)
+            .map(|i| (key_ints[i].clone(), key_floats[i].clone()))
+            .unwrap_or_default();
+        values.push((
+            translate(version, split, splitter, index),
+            summary(ints, floats),
+        ));
+    }
+    if add_ellipsis {
+        let mut ints = Vec::new();
+        let mut floats = Vec::new();
+        for (i, key) in key_order.iter().enumerate() {
+            if !top.contains(key) {
+                ints.extend(&key_ints[i]);
+                floats.extend(&key_floats[i]);
+            }
+        }
+        values.push(("...".to_owned(), summary(ints, floats)));
+    }
+
+    let mut stats = Stats::counts(provided + not_provided, not_provided, provided, false);
+    stats.values = Some(values);
+    stats
+}
+
 /// Disaggregated statistics for `field`, broken down by the values of `split`.
 fn disaggregated_stats(
     version: &Version,
@@ -162,7 +278,11 @@ fn disaggregated_stats(
     submissions: &[Value],
     index: Option<usize>,
 ) -> Stats {
-    const MISSING: &str = "\u{0}none";
+    if field.kind == "integer" || field.kind == "decimal" {
+        return disaggregated_numeric(version, field, split, submissions, index);
+    }
+
+    const MISSING: &str = MISSING_SPLITTER;
     let mut provided = 0;
     let mut not_provided = 0;
     let mut splitter_order: Vec<String> = Vec::new();
@@ -380,15 +500,27 @@ fn numeric_stats(field: &Field, submissions: &[Value]) -> Stats {
         }
     }
 
-    let star = || Value::String("*".to_owned());
+    let (median, mean, mode, stdev) = numeric_summary(ints, floats, integer);
     let mut stats = Stats::counts(provided + not_provided, not_provided, provided, false);
-    stats.median = Some(star());
-    stats.mean = Some(star());
-    stats.mode = Some(star());
-    stats.stdev = Some(star());
+    stats.median = Some(median);
+    stats.mean = Some(mean);
+    stats.mode = Some(mode);
+    stats.stdev = Some(stdev);
+    stats
+}
 
-    // Work on the dataset as f64 (for mean/stdev) while keeping integer values
-    // for integer-typed median/mode.
+/// The `(median, mean, mode, stdev)` of a numeric dataset, each `"*"` when
+/// undefined. Mirrors the reference's sequential evaluation: empty data leaves
+/// all `"*"`; a lone value leaves `stdev`/`mode` `"*"`; a non-unique mode leaves
+/// `mode` `"*"`.
+fn numeric_summary(
+    mut ints: Vec<i64>,
+    mut floats: Vec<f64>,
+    integer: bool,
+) -> (Value, Value, Value, Value) {
+    let star = || Value::String("*".to_owned());
+    let (mut median, mut mean, mut mode, mut stdev) = (star(), star(), star(), star());
+
     let data: Vec<f64> = if integer {
         ints.iter().map(|&i| i as f64).collect()
     } else {
@@ -396,40 +528,38 @@ fn numeric_stats(field: &Field, submissions: &[Value]) -> Stats {
     };
     let n = data.len();
     if n == 0 {
-        return stats;
+        return (median, mean, mode, stdev);
     }
 
-    let mean = data.iter().sum::<f64>() / n as f64;
-    stats.mean = Some(if integer {
+    let mean_f = data.iter().sum::<f64>() / n as f64;
+    mean = if integer {
         let sum: i128 = ints.iter().map(|&i| i128::from(i)).sum();
         if sum % n as i128 == 0 {
             json!(i64::try_from(sum / n as i128).unwrap_or_default())
         } else {
-            json!(mean)
+            json!(mean_f)
         }
     } else {
-        json!(mean)
-    });
+        json!(mean_f)
+    };
 
-    stats.median = Some(if integer {
+    median = if integer {
         median_int(&mut ints)
     } else {
         median_float(&mut floats)
-    });
+    };
 
     if n < 2 {
-        return stats;
+        return (median, mean, mode, stdev);
     }
 
-    stats.stdev = Some(json!(sample_stdev(&data, mean)));
-
-    stats.mode = Some(if integer {
+    stdev = json!(sample_stdev(&data, mean_f));
+    mode = if integer {
         unique_mode(&ints).map_or_else(star, |m| json!(m))
     } else {
         unique_mode(&floats).map_or_else(star, |m| json!(m))
-    });
-
-    stats
+    };
+    (median, mean, mode, stdev)
 }
 
 /// A parsed numeric value, keeping integers exact for display.
