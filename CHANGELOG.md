@@ -6,6 +6,12 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-05
+
+First release: CSV, multi-section text, XLSX, GeoJSON and per-field report
+exports from an XLSForm-style definition and JSON submissions, conformance-
+tested against the reference exporter.
+
 ### Fixed
 
 - Report field classification now mirrors the reference's type→class mapping, a

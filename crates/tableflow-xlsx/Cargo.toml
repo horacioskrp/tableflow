@@ -9,6 +9,7 @@ repository.workspace = true
 description = "XLSX serializer for tableflow: one worksheet per exported table."
 keywords = ["xlsx", "spreadsheet", "export", "tabular", "data"]
 categories = ["encoding"]
+readme = "README.md"
 
 [dependencies]
 tableflow-export.workspace = true

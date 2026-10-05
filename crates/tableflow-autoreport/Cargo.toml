@@ -9,6 +9,7 @@ repository.workspace = true
 description = "Per-field summary report (counts, frequencies, percentages) for tableflow."
 keywords = ["report", "statistics", "frequency", "survey", "summary"]
 categories = ["encoding"]
+readme = "README.md"
 
 [dependencies]
 tableflow-core.workspace = true
