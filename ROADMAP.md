@@ -52,8 +52,9 @@ to CSV, matching the reference exporter.
       linked by `_index` / `_parent_table_name` / `_parent_index`; multi-section
       conformance via a framed `.tables` golden (`repeat_tables`)
 - [x] **GO:** grouped and repeatable goldens match
-- [ ] Deferred: `hierarchy_in_labels` (group-label-prefixed headers) and nested
-      repeats beyond one level
+- [x] Nested repeats beyond one level (repeat within a repeat), linked through
+      each level (`nested_repeats` fixture)
+- [ ] Deferred: `hierarchy_in_labels` (group-label-prefixed headers)
 
 ## Phase 4 — `select_multiple` ✅
 
