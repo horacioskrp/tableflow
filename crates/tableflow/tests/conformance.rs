@@ -112,29 +112,42 @@ fn csv_fixtures_match_reference() {
         };
 
         let tables_path = dir.join(format!("{stem}.tables"));
-        let (got, golden_path) =
-            if let Some(versions) = input.get("versions").and_then(Value::as_array) {
-                // `versions` (plural) → multi-version merge, CSV only.
-                (
-                    tableflow::export_csv_versions(versions, &submissions, &layout),
-                    dir.join(format!("{stem}.csv")),
-                )
-            } else if tables_path.exists() {
-                // A `.tables` golden selects the multi-section export.
+        let (got, golden_path) = if let Some(versions) =
+            input.get("versions").and_then(Value::as_array)
+        {
+            // `versions` (plural) → multi-version merge. A `.tables` golden
+            // selects the multi-section export, otherwise CSV (main only).
+            if tables_path.exists() {
                 let title = input
                     .get("title")
                     .and_then(Value::as_str)
                     .unwrap_or("submissions");
                 (
-                    tableflow::export_tables_text(&input["version"], &submissions, title, &layout),
+                    tableflow::export_tables_text_versions(versions, &submissions, title, &layout),
                     tables_path,
                 )
             } else {
                 (
-                    tableflow::export_csv(&input["version"], &submissions, &layout),
+                    tableflow::export_csv_versions(versions, &submissions, &layout),
                     dir.join(format!("{stem}.csv")),
                 )
-            };
+            }
+        } else if tables_path.exists() {
+            // A `.tables` golden selects the multi-section export.
+            let title = input
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or("submissions");
+            (
+                tableflow::export_tables_text(&input["version"], &submissions, title, &layout),
+                tables_path,
+            )
+        } else {
+            (
+                tableflow::export_csv(&input["version"], &submissions, &layout),
+                dir.join(format!("{stem}.csv")),
+            )
+        };
 
         let golden = fs::read_to_string(&golden_path)
             .unwrap_or_else(|_| panic!("missing golden for `{stem}`"));

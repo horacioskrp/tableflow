@@ -76,8 +76,11 @@ to CSV, matching the reference exporter.
 - [x] `export_csv_versions` facade; submissions fill the columns they carry and
       leave the rest blank, so rows from any version coexist
 - [x] **GO:** multi-version goldens match (`multiversion`, `multiversion_reversed`)
-- [ ] Deferred: cross-version repeat merging, and per-version field paths that
-      differ for the same field name (only the main section is merged)
+- [x] Cross-version repeat merging: every section (main + repeats) is merged
+      across versions, matched by `repeat_path`; `export_tables_text_versions`
+      exports the merged multi-section canvas (`multiversion_repeat`)
+- [ ] Deferred: per-version field paths that differ for the same field name
+      (values are read by the merged field's path)
 
 ## Phase 6 — XLSX & header options ✅
 

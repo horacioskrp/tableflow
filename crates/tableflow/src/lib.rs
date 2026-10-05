@@ -79,6 +79,22 @@ pub fn export_csv_versions(
     tableflow_export::to_csv(&merged, submissions, layout)
 }
 
+/// Merge several form versions and export every section (main + repeats, merged
+/// across versions) as framed multi-section text, with `title` naming the main
+/// table.
+#[must_use]
+pub fn export_tables_text_versions(
+    version_schemas: &[Value],
+    submissions: &[Value],
+    title: &str,
+    layout: &Layout,
+) -> String {
+    let versions: Vec<Version> = version_schemas.iter().map(parse_version).collect();
+    let merged = merge_versions(&versions);
+    let tables = tableflow_export::export_tables(&merged, submissions, title, layout);
+    tableflow_export::tables_to_text(&tables)
+}
+
 /// Parse a version schema and export every section (main + repeats) as a framed
 /// multi-section text, with `title` naming the main table.
 #[must_use]

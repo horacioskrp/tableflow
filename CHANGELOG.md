@@ -97,6 +97,13 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- Cross-version repeat merging: `merge_versions` now merges every section (main
+  and each repeat), matched across versions by `repeat_path`, remapping parents
+  and recomputing `has_children`. The new `export_tables_text_versions` facade
+  exports the merged multi-section canvas, so a repeat that gains or loses
+  fields between versions exports as one linked table. New golden
+  `multiversion_repeat`. (Still deferred: per-version field paths that differ
+  for the same field name.)
 - `filter_fields` export option: when set, only the listed fields are exported
   (in survey order). New golden `filter_fields`.
 - `include_media_url` export option: a `<name>_URL` column is appended after each
