@@ -97,6 +97,11 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- `filter_fields` export option: when set, only the listed fields are exported
+  (in survey order). New golden `filter_fields`.
+- `include_media_url` export option: a `<name>_URL` column is appended after each
+  media field (image/audio/video/file), filled from the submission's
+  `_attachments` (matched by file name). New golden `media_url`.
 - `hierarchy_in_labels` export option: headers are prefixed by their enclosing
   groups' labels (or names in names mode), joined by `group_sep`, which also
   separates the `select_multiple` expansion columns. The model now records each

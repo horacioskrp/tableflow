@@ -95,8 +95,12 @@ to CSV, matching the reference exporter.
 - [x] HXL tag header rows (`tag_cols`): a header row per tag column (e.g. `hxl`)
       after the labels, each field's tag at its first value column
       (`hxl_tags` fixture)
-- [ ] Deferred: `xls_types_as_text=false` (native cell types),
-      `include_media_url`, filter fields
+- [x] `filter_fields`: keep only the listed fields, in survey order
+      (`filter_fields` fixture)
+- [x] `include_media_url`: a `<name>_URL` column after each media field, filled
+      from the submission's `_attachments` (`media_url` fixture)
+- [ ] Deferred: `xls_types_as_text=false` (native cell types — the reference's
+      coercion is quirky and input-dependent, e.g. `int(9.5)=9`)
 
 ## Phase 7 — Geo / SPSS / attachments ✅
 
