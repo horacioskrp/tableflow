@@ -130,7 +130,8 @@ to CSV, matching the reference exporter.
 - [x] `split_by` disaggregation: each other field broken down by a chosen
       field's values — `values: [[answer, {frequency, percentage}]]` across the
       top-5 splitters (plus an `…` bucket); categorical fields only
+- [x] Numeric `split_by`: for `integer` / `decimal` fields, each splitter paired
+      with its `{median, mean, mode, stdev}` (`report_split_numeric`)
 - [x] **GO:** report goldens match as parsed JSON (`report_counts`,
       `report_translated`, `report_numeric`, `report_numeric_edge`,
-      `report_split`)
-- [ ] Deferred: numeric per-splitter substats under `split_by`
+      `report_split`, `report_split_numeric`)
