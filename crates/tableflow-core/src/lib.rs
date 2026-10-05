@@ -29,6 +29,17 @@ pub struct Field {
     pub or_other: bool,
     /// Field tags (e.g. `hxl:#code`), used for tag header rows.
     pub tags: Vec<String>,
+    /// Enclosing groups / repeats, outermost first, for `hierarchy_in_labels`.
+    pub group_path: Vec<GroupLabel>,
+}
+
+/// An enclosing group or repeat, for building hierarchical headers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GroupLabel {
+    /// Group name.
+    pub name: String,
+    /// Labels indexed by [`Version::translations`]; empty when untranslated.
+    pub labels: Vec<String>,
 }
 
 /// A table of the export: the main section (index 0) or a repeat.
@@ -186,6 +197,7 @@ pub fn parse_version(schema: &Value) -> Version {
 fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
     let mut prefix: Vec<String> = Vec::new();
     let mut stack: Vec<usize> = vec![0];
+    let mut groups: Vec<GroupLabel> = Vec::new();
 
     for row in rows {
         let kind = row.get("type").and_then(Value::as_str).unwrap_or_default();
@@ -194,14 +206,23 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
         match kind.replace(' ', "_").as_str() {
             "begin_group" => {
                 prefix.push(name.to_owned());
+                groups.push(GroupLabel {
+                    name: name.to_owned(),
+                    labels: labels_of(row.get("label")),
+                });
                 continue;
             }
             "end_group" => {
                 prefix.pop();
+                groups.pop();
                 continue;
             }
             "begin_repeat" => {
                 prefix.push(name.to_owned());
+                groups.push(GroupLabel {
+                    name: name.to_owned(),
+                    labels: labels_of(row.get("label")),
+                });
                 let current = *stack.last().expect("non-empty stack");
                 let new_index = sections.len();
                 sections.push(Section {
@@ -217,6 +238,7 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
             }
             "end_repeat" => {
                 prefix.pop();
+                groups.pop();
                 stack.pop();
                 continue;
             }
@@ -253,6 +275,7 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
             list_name: list_name_of(row, &stripped),
             or_other,
             tags: tags_of(row.get("tags")),
+            group_path: groups.clone(),
         });
 
         // `or_other` selects carry a companion free-text field `<name>_other`.
@@ -265,6 +288,7 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
                 list_name: None,
                 or_other: false,
                 tags: Vec::new(),
+                group_path: groups.clone(),
             });
         }
     }

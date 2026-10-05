@@ -75,13 +75,29 @@ fn csv_fixtures_match_reference() {
             })
             .unwrap_or_default();
         let tag_cols: Vec<&str> = tag_owned.iter().map(String::as_str).collect();
+        let group_sep = input
+            .get("group_sep")
+            .and_then(Value::as_str)
+            .unwrap_or("/");
+        let hierarchy = input
+            .get("hierarchy_in_labels")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let layout = tableflow::Layout {
+            lang,
+            multiple_select: tableflow::MultipleSelect::parse(mode),
+            group_sep,
+            hierarchy_in_labels: hierarchy,
+            copy_fields: &copy_fields,
+            tag_cols: &tag_cols,
+        };
 
         let tables_path = dir.join(format!("{stem}.tables"));
         let (got, golden_path) =
             if let Some(versions) = input.get("versions").and_then(Value::as_array) {
                 // `versions` (plural) → multi-version merge, CSV only.
                 (
-                    tableflow::export_csv_versions(versions, &submissions, lang, mode),
+                    tableflow::export_csv_versions(versions, &submissions, &layout),
                     dir.join(format!("{stem}.csv")),
                 )
             } else if tables_path.exists() {
@@ -91,27 +107,12 @@ fn csv_fixtures_match_reference() {
                     .and_then(Value::as_str)
                     .unwrap_or("submissions");
                 (
-                    tableflow::export_tables_text(
-                        &input["version"],
-                        &submissions,
-                        lang,
-                        title,
-                        mode,
-                        &copy_fields,
-                        &tag_cols,
-                    ),
+                    tableflow::export_tables_text(&input["version"], &submissions, title, &layout),
                     tables_path,
                 )
             } else {
                 (
-                    tableflow::export_csv(
-                        &input["version"],
-                        &submissions,
-                        lang,
-                        mode,
-                        &copy_fields,
-                        &tag_cols,
-                    ),
+                    tableflow::export_csv(&input["version"], &submissions, &layout),
                     dir.join(format!("{stem}.csv")),
                 )
             };
