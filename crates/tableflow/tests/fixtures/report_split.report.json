@@ -1,0 +1,129 @@
+{
+  "submissions_count": 3,
+  "fields": [
+    {
+      "name": "city",
+      "label": "city",
+      "stats": {
+        "total_count": 3,
+        "not_provided": 0,
+        "provided": 3,
+        "show_graph": false,
+        "values": [
+          [
+            "Lome",
+            {
+              "frequency": [
+                [
+                  "a",
+                  2
+                ],
+                [
+                  "b",
+                  0
+                ]
+              ],
+              "percentage": [
+                [
+                  "a",
+                  66.67
+                ],
+                [
+                  "b",
+                  0.0
+                ]
+              ]
+            }
+          ],
+          [
+            "Kara",
+            {
+              "frequency": [
+                [
+                  "a",
+                  0
+                ],
+                [
+                  "b",
+                  1
+                ]
+              ],
+              "percentage": [
+                [
+                  "a",
+                  0.0
+                ],
+                [
+                  "b",
+                  33.33
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "fav",
+      "label": "fav",
+      "stats": {
+        "total_count": 3,
+        "not_provided": 0,
+        "provided": 3,
+        "show_graph": true,
+        "values": [
+          [
+            "r",
+            {
+              "frequency": [
+                [
+                  "a",
+                  1
+                ],
+                [
+                  "b",
+                  1
+                ]
+              ],
+              "percentage": [
+                [
+                  "a",
+                  33.33
+                ],
+                [
+                  "b",
+                  33.33
+                ]
+              ]
+            }
+          ],
+          [
+            "bl",
+            {
+              "frequency": [
+                [
+                  "a",
+                  1
+                ],
+                [
+                  "b",
+                  0
+                ]
+              ],
+              "percentage": [
+                [
+                  "a",
+                  33.33
+                ],
+                [
+                  "b",
+                  0.0
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}
