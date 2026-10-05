@@ -23,17 +23,22 @@ pub struct Table {
 }
 
 /// Export the main section's submissions as CSV in language `lang`.
+///
+/// `copy_fields` names extra submission keys (e.g. `_id`, `_submission_time`)
+/// appended as trailing columns.
 #[must_use]
 pub fn to_csv(
     version: &Version,
     submissions: &[Value],
     lang: Option<&str>,
     mode: MultipleSelect,
+    copy_fields: &[&str],
 ) -> String {
     let index = tableflow_schema::lang_index(version, lang);
     let main = &version.sections[0];
 
     let mut header = field_columns(version, main, index, mode);
+    header.extend(copy_fields.iter().map(|&name| name.to_owned()));
     if main.has_children {
         header.push("_index".to_owned());
     }
@@ -41,12 +46,61 @@ pub fn to_csv(
     let mut lines = vec![format_line(&header)];
     for (position, submission) in submissions.iter().enumerate() {
         let mut row = field_values(version, main, submission, index, mode);
+        row.extend(copy_values(copy_fields, submission, index));
         if main.has_children {
             row.push((position + 1).to_string());
         }
         lines.push(format_line(&row));
     }
     lines.join("\n")
+}
+
+/// The copy-field cell values for one submission.
+fn copy_values(copy_fields: &[&str], data: &Value, index: Option<usize>) -> Vec<String> {
+    copy_fields
+        .iter()
+        .map(|&name| copy_value(name, data, index))
+        .collect()
+}
+
+/// One copy field's value: `_tags` joined by `", "`, `_validation_status` as
+/// its uid (names mode) or label (a language), otherwise the scalar; empty when
+/// absent.
+fn copy_value(name: &str, data: &Value, index: Option<usize>) -> String {
+    let Some(value) = data.get(name) else {
+        return String::new();
+    };
+    match name {
+        "_tags" => value.as_array().map_or_else(String::new, |items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .collect::<Vec<_>>()
+                .join(", ")
+        }),
+        "_validation_status" => match value.as_object() {
+            Some(status) => {
+                let key = if index.is_none() { "uid" } else { "label" };
+                status
+                    .get(key)
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_owned()
+            }
+            None => scalar(value),
+        },
+        _ => scalar(value),
+    }
+}
+
+/// A submission value as a plain string (empty for null/absent/compound).
+fn scalar(value: &Value) -> String {
+    match value {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        Value::Bool(b) => b.to_string(),
+        _ => String::new(),
+    }
 }
 
 /// Export every section as a [`Table`]. `title` names the main table (and is
@@ -58,6 +112,7 @@ pub fn export_tables(
     lang: Option<&str>,
     title: &str,
     mode: MultipleSelect,
+    copy_fields: &[&str],
 ) -> Vec<Table> {
     let index = tableflow_schema::lang_index(version, lang);
 
@@ -66,7 +121,7 @@ pub fn export_tables(
         .iter()
         .map(|section| Table {
             name: section_name(section, title),
-            header: section_header(version, section, index, mode),
+            header: section_header(version, section, index, mode, copy_fields),
             rows: Vec::new(),
         })
         .collect();
@@ -80,6 +135,7 @@ pub fn export_tables(
             None,
             index,
             mode,
+            copy_fields,
             &mut counters,
             &mut tables,
         );
@@ -145,6 +201,7 @@ fn emit_section(
     parent: Option<(&str, usize)>,
     lang: Option<usize>,
     mode: MultipleSelect,
+    copy_fields: &[&str],
     counters: &mut [usize],
     tables: &mut [Table],
 ) {
@@ -153,6 +210,9 @@ fn emit_section(
     let section = &version.sections[section_index];
 
     let mut row = field_values(version, section, data, lang, mode);
+    if section.parent.is_none() {
+        row.extend(copy_values(copy_fields, data, lang));
+    }
     if section.has_children {
         row.push(my_index.to_string());
     }
@@ -180,6 +240,7 @@ fn emit_section(
                     Some((&my_name, my_index)),
                     lang,
                     mode,
+                    copy_fields,
                     counters,
                     tables,
                 );
@@ -204,8 +265,12 @@ fn section_header(
     section: &Section,
     lang: Option<usize>,
     mode: MultipleSelect,
+    copy_fields: &[&str],
 ) -> Vec<String> {
     let mut header = field_columns(version, section, lang, mode);
+    if section.parent.is_none() {
+        header.extend(copy_fields.iter().map(|&name| name.to_owned()));
+    }
     if section.has_children {
         header.push("_index".to_owned());
     }

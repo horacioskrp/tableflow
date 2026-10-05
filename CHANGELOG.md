@@ -90,6 +90,13 @@ to [Semantic Versioning](https://semver.org/).
   correctly rounded (a port of CPython's `statistics._float_sqrt_of_frac`), so
   the summaries match the reference exporter bit-for-bit. New goldens
   `report_numeric`, `report_numeric_edge`.
+- `copy_fields` export option: extra submission keys (e.g. `_id`, `_uuid`,
+  `_submission_time`, `_tags`, `_validation_status`) are appended as trailing
+  columns of the main section. `_tags` lists join with `, `; `_validation_status`
+  objects render as their uid (names mode) or label (a language); others are the
+  scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
+  and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
+  golden `copy_fields`.
 - `or_other` selects: a field typed `select_* <list> or_other` (or
   `select_*_or_other`, or an `or_other` column) now carries an `or_other` flag
   on the model. `select_multiple` gains an `/other` details column (set when the

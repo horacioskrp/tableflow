@@ -49,7 +49,7 @@ fn xlsx_fixtures_match_reference() {
             .and_then(Value::as_str)
             .unwrap_or("both");
 
-        let bytes = tableflow::export_xlsx(&input["version"], &submissions, lang, title, mode)
+        let bytes = tableflow::export_xlsx(&input["version"], &submissions, lang, title, mode, &[])
             .expect("build xlsx");
         let got = grid_of(&bytes);
 

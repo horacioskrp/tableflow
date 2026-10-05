@@ -51,6 +51,18 @@ fn csv_fixtures_match_reference() {
             .get("multiple_select")
             .and_then(Value::as_str)
             .unwrap_or("both");
+        let copy_owned: Vec<String> = input
+            .get("copy_fields")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let copy_fields: Vec<&str> = copy_owned.iter().map(String::as_str).collect();
 
         let tables_path = dir.join(format!("{stem}.tables"));
         let (got, golden_path) = if let Some(versions) =
@@ -68,12 +80,19 @@ fn csv_fixtures_match_reference() {
                 .and_then(Value::as_str)
                 .unwrap_or("submissions");
             (
-                tableflow::export_tables_text(&input["version"], &submissions, lang, title, mode),
+                tableflow::export_tables_text(
+                    &input["version"],
+                    &submissions,
+                    lang,
+                    title,
+                    mode,
+                    &copy_fields,
+                ),
                 tables_path,
             )
         } else {
             (
-                tableflow::export_csv(&input["version"], &submissions, lang, mode),
+                tableflow::export_csv(&input["version"], &submissions, lang, mode, &copy_fields),
                 dir.join(format!("{stem}.csv")),
             )
         };
