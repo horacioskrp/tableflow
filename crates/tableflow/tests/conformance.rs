@@ -83,6 +83,23 @@ fn csv_fixtures_match_reference() {
             .get("hierarchy_in_labels")
             .and_then(Value::as_bool)
             .unwrap_or(false);
+        let filter_owned: Option<Vec<String>> = input
+            .get("filter_fields")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            });
+        let filter_refs: Option<Vec<&str>> = filter_owned
+            .as_ref()
+            .map(|v| v.iter().map(String::as_str).collect());
+        let include_media_url = input
+            .get("include_media_url")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         let layout = tableflow::Layout {
             lang,
             multiple_select: tableflow::MultipleSelect::parse(mode),
@@ -90,6 +107,8 @@ fn csv_fixtures_match_reference() {
             hierarchy_in_labels: hierarchy,
             copy_fields: &copy_fields,
             tag_cols: &tag_cols,
+            filter_fields: filter_refs.as_deref(),
+            include_media_url,
         };
 
         let tables_path = dir.join(format!("{stem}.tables"));
