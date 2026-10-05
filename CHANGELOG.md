@@ -6,7 +6,25 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Report field classification now mirrors the reference's type→class mapping, a
+  differential-audit fix: `time`, `barcode`, `acknowledge`, `calculate`, `rank`,
+  `select_multiple_from_file`, `select_one_external`, `cascading_select` and the
+  media types (`image`/`audio`/`video`/`file`/`background-audio`/`audit`) are now
+  **categorical** (frequency/percentage, no graph); `range` is **numeric**
+  (mean/median/mode/stdev); analysis/NLP fields (`qual*`, `transcript`,
+  `translation`) are excluded like notes. Previously these all fell back to
+  counts-only. New golden `report_types`.
+- `include_media_url` now recognizes `background-audio` and `audit` as media
+  fields (was only `image`/`audio`/`video`/`file`). New golden `media_types`.
+- GeoJSON now emits a `Point` for the legacy `gps` type (alias of `geopoint`).
+  New golden `geo_gps`.
+
 ### Added
+
+- `force_index` export option: adds an `_index` column to every section even
+  without repeats (`force_index` fixture).
 
 - Phase 0 scaffolding: Cargo workspace (edition 2024) with the pipeline crates
   (`tableflow-core`, `-content`, `-schema`, `-export`), the `tableflow` facade
