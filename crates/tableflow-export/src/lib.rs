@@ -37,6 +37,11 @@ pub struct Layout<'a> {
     pub copy_fields: &'a [&'a str],
     /// Tag columns (e.g. `hxl`) emitted as header rows after the labels.
     pub tag_cols: &'a [&'a str],
+    /// When set, keep only the fields whose names are listed (survey order).
+    pub filter_fields: Option<&'a [&'a str]>,
+    /// Append a `<name>_URL` column after each media field (image/audio/video/
+    /// file), filled from the submission's `_attachments`.
+    pub include_media_url: bool,
 }
 
 impl Default for Layout<'_> {
@@ -48,9 +53,14 @@ impl Default for Layout<'_> {
             hierarchy_in_labels: false,
             copy_fields: &[],
             tag_cols: &[],
+            filter_fields: None,
+            include_media_url: false,
         }
     }
 }
+
+/// Media field types that carry an attachment.
+const MEDIA_TYPES: [&str; 4] = ["image", "audio", "video", "file"];
 
 /// Export the main section's submissions as CSV per `layout`.
 #[must_use]
@@ -69,7 +79,7 @@ pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> Stri
         lines.push(format_line(&tag_row));
     }
     for (position, submission) in submissions.iter().enumerate() {
-        let mut row = field_values(version, main, submission, index, layout.multiple_select);
+        let mut row = field_values(version, main, submission, index, layout);
         row.extend(copy_values(layout.copy_fields, submission, index));
         if main.has_children {
             row.push((position + 1).to_string());
@@ -92,10 +102,10 @@ fn tag_rows(
     for &col in layout.tag_cols {
         let mut row = Vec::new();
         let mut any = false;
-        for field in &section.fields {
+        for field in included_fields(section, layout) {
             let value = tag_value(&field.tags, col);
             any |= !value.is_empty();
-            let width = tableflow_schema::columns(
+            let mut width = tableflow_schema::columns(
                 version,
                 field,
                 index,
@@ -104,6 +114,9 @@ fn tag_rows(
                 layout.hierarchy_in_labels,
             )
             .len();
+            if layout.include_media_url && is_media(field) {
+                width += 1;
+            }
             row.push(value);
             row.extend(std::iter::repeat_n(String::new(), width.saturating_sub(1)));
         }
@@ -202,8 +215,7 @@ pub fn export_tables(
             submission,
             None,
             index,
-            layout.multiple_select,
-            layout.copy_fields,
+            layout,
             &mut counters,
             &mut tables,
         );
@@ -233,20 +245,27 @@ fn field_columns(
     lang: Option<usize>,
     layout: &Layout,
 ) -> Vec<String> {
-    section
-        .fields
-        .iter()
-        .flat_map(|field| {
-            tableflow_schema::columns(
-                version,
+    let mut cols = Vec::new();
+    for field in included_fields(section, layout) {
+        cols.extend(tableflow_schema::columns(
+            version,
+            field,
+            lang,
+            layout.multiple_select,
+            layout.group_sep,
+            layout.hierarchy_in_labels,
+        ));
+        if layout.include_media_url && is_media(field) {
+            let base = tableflow_schema::header_path(
                 field,
                 lang,
-                layout.multiple_select,
                 layout.group_sep,
                 layout.hierarchy_in_labels,
-            )
-        })
-        .collect()
+            );
+            cols.push(format!("{base}_URL"));
+        }
+    }
+    cols
 }
 
 /// The expanded value cells of a section for one data object (fields only).
@@ -255,15 +274,68 @@ fn field_values(
     section: &Section,
     data: &Value,
     lang: Option<usize>,
-    mode: MultipleSelect,
+    layout: &Layout,
 ) -> Vec<String> {
-    section
-        .fields
-        .iter()
-        .flat_map(|field| {
-            tableflow_schema::values(version, field, data.get(&field.path), lang, mode)
-        })
-        .collect()
+    let mut vals = Vec::new();
+    for field in included_fields(section, layout) {
+        vals.extend(tableflow_schema::values(
+            version,
+            field,
+            data.get(&field.path),
+            lang,
+            layout.multiple_select,
+        ));
+        if layout.include_media_url && is_media(field) {
+            vals.push(media_url(
+                data,
+                &scalar(data.get(&field.path).unwrap_or(&Value::Null)),
+            ));
+        }
+    }
+    vals
+}
+
+/// Whether a field carries a media attachment.
+fn is_media(field: &tableflow_core::Field) -> bool {
+    MEDIA_TYPES.contains(&field.kind.as_str())
+}
+
+/// The section's fields kept by `layout.filter_fields` (all when unset).
+fn included_fields<'a>(
+    section: &'a Section,
+    layout: &'a Layout,
+) -> impl Iterator<Item = &'a tableflow_core::Field> {
+    section.fields.iter().filter(move |field| {
+        layout
+            .filter_fields
+            .is_none_or(|set| set.contains(&field.name.as_str()))
+    })
+}
+
+/// The download URL for a media `value`, matched by file name in the
+/// submission's `_attachments`; empty when absent.
+fn media_url(data: &Value, value: &str) -> String {
+    if value.is_empty() {
+        return String::new();
+    }
+    let Some(attachments) = data.get("_attachments").and_then(Value::as_array) else {
+        return String::new();
+    };
+    for attachment in attachments {
+        let name = attachment
+            .get("filename")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let basename = name.rsplit('/').next().unwrap_or(name);
+        if name == value || basename == value {
+            return attachment
+                .get("download_url")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned();
+        }
+    }
+    String::new()
 }
 
 /// Emit one row for `section` from `data`, then recurse into its child repeats.
@@ -277,8 +349,7 @@ fn emit_section(
     data: &Value,
     parent: Option<(&str, usize)>,
     lang: Option<usize>,
-    mode: MultipleSelect,
-    copy_fields: &[&str],
+    layout: &Layout,
     counters: &mut [usize],
     tables: &mut [Table],
 ) {
@@ -286,9 +357,9 @@ fn emit_section(
     let my_index = counters[section_index];
     let section = &version.sections[section_index];
 
-    let mut row = field_values(version, section, data, lang, mode);
+    let mut row = field_values(version, section, data, lang, layout);
     if section.parent.is_none() {
-        row.extend(copy_values(copy_fields, data, lang));
+        row.extend(copy_values(layout.copy_fields, data, lang));
     }
     if section.has_children {
         row.push(my_index.to_string());
@@ -316,8 +387,7 @@ fn emit_section(
                     item,
                     Some((&my_name, my_index)),
                     lang,
-                    mode,
-                    copy_fields,
+                    layout,
                     counters,
                     tables,
                 );
