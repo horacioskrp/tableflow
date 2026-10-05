@@ -48,10 +48,14 @@ fn xlsx_fixtures_match_reference() {
             .get("multiple_select")
             .and_then(Value::as_str)
             .unwrap_or("both");
+        let layout = tableflow::Layout {
+            lang,
+            multiple_select: tableflow::MultipleSelect::parse(mode),
+            ..tableflow::Layout::default()
+        };
 
-        let bytes =
-            tableflow::export_xlsx(&input["version"], &submissions, lang, title, mode, &[], &[])
-                .expect("build xlsx");
+        let bytes = tableflow::export_xlsx(&input["version"], &submissions, title, &layout)
+            .expect("build xlsx");
         let got = grid_of(&bytes);
 
         let golden: Value =

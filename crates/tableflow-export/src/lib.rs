@@ -22,35 +22,55 @@ pub struct Table {
     pub rows: Vec<Vec<String>>,
 }
 
-/// Export the main section's submissions as CSV in language `lang`.
-///
-/// `copy_fields` names extra submission keys (e.g. `_id`, `_submission_time`)
-/// appended as trailing columns.
+/// Export options: language, `select_multiple` mode, header layout and extras.
+#[derive(Clone, Copy)]
+pub struct Layout<'a> {
+    /// Language for labels (`None` = names mode).
+    pub lang: Option<&'a str>,
+    /// How `select_multiple` fields expand.
+    pub multiple_select: MultipleSelect,
+    /// Separator between hierarchy levels and expansion columns.
+    pub group_sep: &'a str,
+    /// Prefix each header with its enclosing groups' labels.
+    pub hierarchy_in_labels: bool,
+    /// Extra submission keys appended as trailing main-section columns.
+    pub copy_fields: &'a [&'a str],
+    /// Tag columns (e.g. `hxl`) emitted as header rows after the labels.
+    pub tag_cols: &'a [&'a str],
+}
+
+impl Default for Layout<'_> {
+    fn default() -> Self {
+        Layout {
+            lang: None,
+            multiple_select: MultipleSelect::Both,
+            group_sep: "/",
+            hierarchy_in_labels: false,
+            copy_fields: &[],
+            tag_cols: &[],
+        }
+    }
+}
+
+/// Export the main section's submissions as CSV per `layout`.
 #[must_use]
-pub fn to_csv(
-    version: &Version,
-    submissions: &[Value],
-    lang: Option<&str>,
-    mode: MultipleSelect,
-    copy_fields: &[&str],
-    tag_cols: &[&str],
-) -> String {
-    let index = tableflow_schema::lang_index(version, lang);
+pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> String {
+    let index = tableflow_schema::lang_index(version, layout.lang);
     let main = &version.sections[0];
 
-    let mut header = field_columns(version, main, index, mode);
-    header.extend(copy_fields.iter().map(|&name| name.to_owned()));
+    let mut header = field_columns(version, main, index, layout);
+    header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
     if main.has_children {
         header.push("_index".to_owned());
     }
 
     let mut lines = vec![format_line(&header)];
-    for tag_row in tag_rows(version, main, index, mode, tag_cols) {
+    for tag_row in tag_rows(version, main, index, layout) {
         lines.push(format_line(&tag_row));
     }
     for (position, submission) in submissions.iter().enumerate() {
-        let mut row = field_values(version, main, submission, index, mode);
-        row.extend(copy_values(copy_fields, submission, index));
+        let mut row = field_values(version, main, submission, index, layout.multiple_select);
+        row.extend(copy_values(layout.copy_fields, submission, index));
         if main.has_children {
             row.push((position + 1).to_string());
         }
@@ -66,17 +86,24 @@ fn tag_rows(
     version: &Version,
     section: &Section,
     index: Option<usize>,
-    mode: MultipleSelect,
-    tag_cols: &[&str],
+    layout: &Layout,
 ) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
-    for &col in tag_cols {
+    for &col in layout.tag_cols {
         let mut row = Vec::new();
         let mut any = false;
         for field in &section.fields {
             let value = tag_value(&field.tags, col);
             any |= !value.is_empty();
-            let width = tableflow_schema::columns(version, field, index, mode).len();
+            let width = tableflow_schema::columns(
+                version,
+                field,
+                index,
+                layout.multiple_select,
+                layout.group_sep,
+                layout.hierarchy_in_labels,
+            )
+            .len();
             row.push(value);
             row.extend(std::iter::repeat_n(String::new(), width.saturating_sub(1)));
         }
@@ -152,21 +179,18 @@ fn scalar(value: &Value) -> String {
 pub fn export_tables(
     version: &Version,
     submissions: &[Value],
-    lang: Option<&str>,
     title: &str,
-    mode: MultipleSelect,
-    copy_fields: &[&str],
-    tag_cols: &[&str],
+    layout: &Layout,
 ) -> Vec<Table> {
-    let index = tableflow_schema::lang_index(version, lang);
+    let index = tableflow_schema::lang_index(version, layout.lang);
 
     let mut tables: Vec<Table> = version
         .sections
         .iter()
         .map(|section| Table {
             name: section_name(section, title),
-            header: section_header(version, section, index, mode, copy_fields),
-            rows: tag_rows(version, section, index, mode, tag_cols),
+            header: section_header(version, section, index, layout),
+            rows: tag_rows(version, section, index, layout),
         })
         .collect();
 
@@ -178,8 +202,8 @@ pub fn export_tables(
             submission,
             None,
             index,
-            mode,
-            copy_fields,
+            layout.multiple_select,
+            layout.copy_fields,
             &mut counters,
             &mut tables,
         );
@@ -207,12 +231,21 @@ fn field_columns(
     version: &Version,
     section: &Section,
     lang: Option<usize>,
-    mode: MultipleSelect,
+    layout: &Layout,
 ) -> Vec<String> {
     section
         .fields
         .iter()
-        .flat_map(|field| tableflow_schema::columns(version, field, lang, mode))
+        .flat_map(|field| {
+            tableflow_schema::columns(
+                version,
+                field,
+                lang,
+                layout.multiple_select,
+                layout.group_sep,
+                layout.hierarchy_in_labels,
+            )
+        })
         .collect()
 }
 
@@ -308,12 +341,11 @@ fn section_header(
     version: &Version,
     section: &Section,
     lang: Option<usize>,
-    mode: MultipleSelect,
-    copy_fields: &[&str],
+    layout: &Layout,
 ) -> Vec<String> {
-    let mut header = field_columns(version, section, lang, mode);
+    let mut header = field_columns(version, section, lang, layout);
     if section.parent.is_none() {
-        header.extend(copy_fields.iter().map(|&name| name.to_owned()));
+        header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
     }
     if section.has_children {
         header.push("_index".to_owned());
