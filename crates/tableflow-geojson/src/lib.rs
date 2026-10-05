@@ -19,8 +19,9 @@ use serde_json::{Map, Value, json};
 use tableflow_core::{Field, Version};
 use tableflow_schema::MultipleSelect;
 
-/// XForm geo data types, mapped to GeoJSON geometry types.
-const GEO_TYPES: [&str; 3] = ["geopoint", "geotrace", "geoshape"];
+/// XForm geo data types, mapped to GeoJSON geometry types (`gps` is a legacy
+/// alias for `geopoint`).
+const GEO_TYPES: [&str; 4] = ["geopoint", "gps", "geotrace", "geoshape"];
 
 /// Build a GeoJSON `FeatureCollection` from `submissions`.
 ///
@@ -95,7 +96,7 @@ fn properties(
 /// `None` if the response is missing points or malformed.
 fn geometry(kind: &str, response: &str) -> Option<Value> {
     match kind {
-        "geopoint" => {
+        "geopoint" | "gps" => {
             let point = parse_point(response)?;
             Some(json!({ "type": "Point", "coordinates": point }))
         }
