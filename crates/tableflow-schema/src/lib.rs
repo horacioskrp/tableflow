@@ -58,6 +58,25 @@ pub fn header(field: &Field, lang: Option<usize>) -> String {
     }
 }
 
+/// The header for a field, hierarchical when `hierarchy` is set: each enclosing
+/// group's label (or name) then the field's own, joined by `group_sep`.
+#[must_use]
+pub fn header_path(field: &Field, lang: Option<usize>, group_sep: &str, hierarchy: bool) -> String {
+    if !hierarchy {
+        return header(field, lang);
+    }
+    let mut parts: Vec<String> = field
+        .group_path
+        .iter()
+        .map(|group| match lang.and_then(|i| group.labels.get(i)) {
+            Some(label) if !label.is_empty() => label.clone(),
+            _ => group.name.clone(),
+        })
+        .collect();
+    parts.push(header(field, lang));
+    parts.join(group_sep)
+}
+
 /// The column headers a field contributes.
 #[must_use]
 pub fn columns(
@@ -65,21 +84,23 @@ pub fn columns(
     field: &Field,
     lang: Option<usize>,
     mode: MultipleSelect,
+    group_sep: &str,
+    hierarchy: bool,
 ) -> Vec<String> {
+    let base = header_path(field, lang, group_sep, hierarchy);
     if field.kind != "select_multiple" {
-        return vec![header(field, lang)];
+        return vec![base];
     }
-    let base = header(field, lang);
     let mut cols = Vec::new();
     if mode.has_summary() {
         cols.push(base.clone());
     }
     if mode.has_details() {
         for choice in choices(version, field) {
-            cols.push(format!("{base}/{}", choice_header(choice, lang)));
+            cols.push(format!("{base}{group_sep}{}", choice_header(choice, lang)));
         }
         if field.or_other {
-            cols.push(format!("{base}/other"));
+            cols.push(format!("{base}{group_sep}other"));
         }
     }
     cols

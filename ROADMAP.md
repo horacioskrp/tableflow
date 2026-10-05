@@ -54,7 +54,9 @@ to CSV, matching the reference exporter.
 - [x] **GO:** grouped and repeatable goldens match
 - [x] Nested repeats beyond one level (repeat within a repeat), linked through
       each level (`nested_repeats` fixture)
-- [ ] Deferred: `hierarchy_in_labels` (group-label-prefixed headers)
+- [x] `hierarchy_in_labels`: each header prefixed by its enclosing groups'
+      labels (or names), joined by `group_sep` — which also separates the
+      `select_multiple` expansion columns (`hierarchy_labels`, `hierarchy_sep`)
 
 ## Phase 4 — `select_multiple` ✅
 

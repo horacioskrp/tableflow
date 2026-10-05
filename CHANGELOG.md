@@ -97,6 +97,14 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- `hierarchy_in_labels` export option: headers are prefixed by their enclosing
+  groups' labels (or names in names mode), joined by `group_sep`, which also
+  separates the `select_multiple` expansion columns. The model now records each
+  field's `group_path` (`tableflow-core::GroupLabel`), and `tableflow-schema`
+  gains `header_path`. The export functions now take a single
+  `tableflow::Layout` (language, `select_multiple` mode, `group_sep`,
+  `hierarchy_in_labels`, `copy_fields`, `tag_cols`) in place of their separate
+  option arguments. New goldens `hierarchy_labels`, `hierarchy_sep`.
 - `split_by` report disaggregation: `export_report` gains an optional split
   field; each other field's stats become `values: [[answer, {frequency,
   percentage}]]` broken down across the split field's top-5 values (with a
