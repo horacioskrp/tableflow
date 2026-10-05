@@ -97,6 +97,10 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- Nested repeats: a repeat inside a repeat now exports as its own linked table,
+  with each level's `_index` / `_parent_table_name` / `_parent_index` resolved
+  through the section tree (already supported by the model; locked by the new
+  `nested_repeats` golden).
 - HXL tag header rows (`tag_cols` export option): a field's `tags` (e.g.
   `hxl:#code`) are parsed onto the model, and for each requested tag column a
   header row is emitted right after the labels (CSV, multi-section text and
