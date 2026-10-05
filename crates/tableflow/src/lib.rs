@@ -28,11 +28,11 @@
 //! let submissions = [json!({ "name": "Alice", "col": "r" })];
 //!
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, None, "both", &[]),
+//!     tableflow::export_csv(&version, &submissions, None, "both", &[], &[]),
 //!     "\"name\";\"col\"\n\"Alice\";\"r\"",
 //! );
 //! assert_eq!(
-//!     tableflow::export_csv(&version, &submissions, Some("Français"), "both", &[]),
+//!     tableflow::export_csv(&version, &submissions, Some("Français"), "both", &[], &[]),
 //!     "\"Votre nom\";\"Couleur\"\n\"Alice\";\"Rouge\"",
 //! );
 //! ```
@@ -58,6 +58,7 @@ pub fn export_csv(
     lang: Option<&str>,
     multiple_select: &str,
     copy_fields: &[&str],
+    tag_cols: &[&str],
 ) -> String {
     let version = parse_version(version_schema);
     tableflow_export::to_csv(
@@ -66,6 +67,7 @@ pub fn export_csv(
         lang,
         MultipleSelect::parse(multiple_select),
         copy_fields,
+        tag_cols,
     )
 }
 
@@ -90,6 +92,7 @@ pub fn export_csv_versions(
         lang,
         MultipleSelect::parse(multiple_select),
         &[],
+        &[],
     )
 }
 
@@ -103,6 +106,7 @@ pub fn export_tables_text(
     title: &str,
     multiple_select: &str,
     copy_fields: &[&str],
+    tag_cols: &[&str],
 ) -> String {
     let version = parse_version(version_schema);
     let tables = tableflow_export::export_tables(
@@ -112,6 +116,7 @@ pub fn export_tables_text(
         title,
         MultipleSelect::parse(multiple_select),
         copy_fields,
+        tag_cols,
     );
     tableflow_export::tables_to_text(&tables)
 }
@@ -131,6 +136,7 @@ pub fn export_xlsx(
     title: &str,
     multiple_select: &str,
     copy_fields: &[&str],
+    tag_cols: &[&str],
 ) -> Result<Vec<u8>, XlsxError> {
     let version = parse_version(version_schema);
     let tables = tableflow_export::export_tables(
@@ -140,6 +146,7 @@ pub fn export_xlsx(
         title,
         MultipleSelect::parse(multiple_select),
         copy_fields,
+        tag_cols,
     );
     tableflow_xlsx::to_xlsx(&tables)
 }

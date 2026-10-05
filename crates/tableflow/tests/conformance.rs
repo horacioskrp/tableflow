@@ -63,39 +63,58 @@ fn csv_fixtures_match_reference() {
             })
             .unwrap_or_default();
         let copy_fields: Vec<&str> = copy_owned.iter().map(String::as_str).collect();
+        let tag_owned: Vec<String> = input
+            .get("tag_cols")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let tag_cols: Vec<&str> = tag_owned.iter().map(String::as_str).collect();
 
         let tables_path = dir.join(format!("{stem}.tables"));
-        let (got, golden_path) = if let Some(versions) =
-            input.get("versions").and_then(Value::as_array)
-        {
-            // `versions` (plural) → multi-version merge, CSV only.
-            (
-                tableflow::export_csv_versions(versions, &submissions, lang, mode),
-                dir.join(format!("{stem}.csv")),
-            )
-        } else if tables_path.exists() {
-            // A `.tables` golden selects the multi-section export.
-            let title = input
-                .get("title")
-                .and_then(Value::as_str)
-                .unwrap_or("submissions");
-            (
-                tableflow::export_tables_text(
-                    &input["version"],
-                    &submissions,
-                    lang,
-                    title,
-                    mode,
-                    &copy_fields,
-                ),
-                tables_path,
-            )
-        } else {
-            (
-                tableflow::export_csv(&input["version"], &submissions, lang, mode, &copy_fields),
-                dir.join(format!("{stem}.csv")),
-            )
-        };
+        let (got, golden_path) =
+            if let Some(versions) = input.get("versions").and_then(Value::as_array) {
+                // `versions` (plural) → multi-version merge, CSV only.
+                (
+                    tableflow::export_csv_versions(versions, &submissions, lang, mode),
+                    dir.join(format!("{stem}.csv")),
+                )
+            } else if tables_path.exists() {
+                // A `.tables` golden selects the multi-section export.
+                let title = input
+                    .get("title")
+                    .and_then(Value::as_str)
+                    .unwrap_or("submissions");
+                (
+                    tableflow::export_tables_text(
+                        &input["version"],
+                        &submissions,
+                        lang,
+                        title,
+                        mode,
+                        &copy_fields,
+                        &tag_cols,
+                    ),
+                    tables_path,
+                )
+            } else {
+                (
+                    tableflow::export_csv(
+                        &input["version"],
+                        &submissions,
+                        lang,
+                        mode,
+                        &copy_fields,
+                        &tag_cols,
+                    ),
+                    dir.join(format!("{stem}.csv")),
+                )
+            };
 
         let golden = fs::read_to_string(&golden_path)
             .unwrap_or_else(|_| panic!("missing golden for `{stem}`"));

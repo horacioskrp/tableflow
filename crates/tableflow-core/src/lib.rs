@@ -27,6 +27,8 @@ pub struct Field {
     /// Whether the select offers a free-text "other" option (`or_other`); adds
     /// an `/other` details column for `select_multiple`.
     pub or_other: bool,
+    /// Field tags (e.g. `hxl:#code`), used for tag header rows.
+    pub tags: Vec<String>,
 }
 
 /// A table of the export: the main section (index 0) or a repeat.
@@ -250,6 +252,7 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
             labels: labels_of(row.get("label")),
             list_name: list_name_of(row, &stripped),
             or_other,
+            tags: tags_of(row.get("tags")),
         });
 
         // `or_other` selects carry a companion free-text field `<name>_other`.
@@ -261,6 +264,7 @@ fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
                 labels: Vec::new(),
                 list_name: None,
                 or_other: false,
+                tags: Vec::new(),
             });
         }
     }
@@ -320,6 +324,18 @@ fn labels_of(value: Option<&Value>) -> Vec<String> {
         Some(Value::Array(items)) => items
             .iter()
             .map(|v| v.as_str().unwrap_or_default().to_owned())
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Parse a `tags` cell (absent / string / list) into a list of tag strings.
+fn tags_of(value: Option<&Value>) -> Vec<String> {
+    match value {
+        Some(Value::String(s)) => vec![s.clone()],
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter_map(|v| v.as_str().map(str::to_owned))
             .collect(),
         _ => Vec::new(),
     }

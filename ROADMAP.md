@@ -89,8 +89,11 @@ to CSV, matching the reference exporter.
 - [x] `copy_fields`: extra submission keys (`_id`, `_uuid`, `_submission_time`,
       `_tags` joined by `, `, `_validation_status` as uid/label…) appended as
       trailing main-section columns (`copy_fields` fixture)
-- [ ] Deferred: `xls_types_as_text=false` (native cell types), HXL tag header
-      rows, `include_media_url`, filter fields
+- [x] HXL tag header rows (`tag_cols`): a header row per tag column (e.g. `hxl`)
+      after the labels, each field's tag at its first value column
+      (`hxl_tags` fixture)
+- [ ] Deferred: `xls_types_as_text=false` (native cell types),
+      `include_media_url`, filter fields
 
 ## Phase 7 — Geo / SPSS / attachments ✅
 
