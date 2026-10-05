@@ -86,8 +86,11 @@ to CSV, matching the reference exporter.
 - [x] **GO:** XLSX goldens match cell-by-cell — workbook read back and compared
       to the reference grid (`simple_flat`, `translated_fr`, `repeat_tables`,
       `selmulti_both`, as `.xlsx.json`)
+- [x] `copy_fields`: extra submission keys (`_id`, `_uuid`, `_submission_time`,
+      `_tags` joined by `, `, `_validation_status` as uid/label…) appended as
+      trailing main-section columns (`copy_fields` fixture)
 - [ ] Deferred: `xls_types_as_text=false` (native cell types), HXL tag header
-      rows, `include_media_url`, copy / filter fields
+      rows, `include_media_url`, filter fields
 
 ## Phase 7 — Geo / SPSS / attachments ✅
 

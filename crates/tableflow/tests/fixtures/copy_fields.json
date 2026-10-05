@@ -1,0 +1,17 @@
+{
+  "version": { "content": { "survey": [
+    { "type": "text", "name": "q", "label": "Q" }
+  ] } },
+  "copy_fields": ["_id", "_uuid", "_submission_time", "_tags", "_validation_status"],
+  "submissions": [
+    {
+      "q": "a",
+      "_id": 12,
+      "_uuid": "abc",
+      "_submission_time": "2024-01-02T03:04:05",
+      "_tags": ["t1", "t2"],
+      "_validation_status": { "uid": "validation_status_on_hold", "label": "On Hold" }
+    },
+    { "q": "b" }
+  ]
+}
