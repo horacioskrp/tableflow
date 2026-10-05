@@ -1,0 +1,19 @@
+{
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "q", "label": "Q", "tags": ["hxl:#qcode"] },
+        { "type": "select_multiple", "select_from_list_name": "col", "name": "c", "label": "C", "tags": ["hxl:#colour"] },
+        { "type": "text", "name": "nohxl", "label": "N" }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "r", "label": "R" },
+        { "list_name": "col", "name": "b", "label": "B" }
+      ]
+    }
+  },
+  "tag_cols": ["hxl"],
+  "submissions": [
+    { "q": "a", "c": "r b", "nohxl": "x" }
+  ]
+}

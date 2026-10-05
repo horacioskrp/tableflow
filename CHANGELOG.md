@@ -97,6 +97,11 @@ to [Semantic Versioning](https://semver.org/).
   scalar value, blank when absent. Threaded through `to_csv` / `export_tables`
   and the `export_csv` / `export_tables_text` / `export_xlsx` facades. New
   golden `copy_fields`.
+- HXL tag header rows (`tag_cols` export option): a field's `tags` (e.g.
+  `hxl:#code`) are parsed onto the model, and for each requested tag column a
+  header row is emitted right after the labels (CSV, multi-section text and
+  XLSX), with each field's tag value at its first value column and blanks for
+  its expansion columns. New golden `hxl_tags`.
 - `or_other` selects: a field typed `select_* <list> or_other` (or
   `select_*_or_other`, or an `or_other` column) now carries an `or_other` flag
   on the model. `select_multiple` gains an `/other` details column (set when the
