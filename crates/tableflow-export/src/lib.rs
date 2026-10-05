@@ -33,6 +33,7 @@ pub fn to_csv(
     lang: Option<&str>,
     mode: MultipleSelect,
     copy_fields: &[&str],
+    tag_cols: &[&str],
 ) -> String {
     let index = tableflow_schema::lang_index(version, lang);
     let main = &version.sections[0];
@@ -44,6 +45,9 @@ pub fn to_csv(
     }
 
     let mut lines = vec![format_line(&header)];
+    for tag_row in tag_rows(version, main, index, mode, tag_cols) {
+        lines.push(format_line(&tag_row));
+    }
     for (position, submission) in submissions.iter().enumerate() {
         let mut row = field_values(version, main, submission, index, mode);
         row.extend(copy_values(copy_fields, submission, index));
@@ -53,6 +57,45 @@ pub fn to_csv(
         lines.push(format_line(&row));
     }
     lines.join("\n")
+}
+
+/// The tag header rows (one per `tag_col` that any field carries) for a
+/// section's value columns. Each field's tag sits at its first value column,
+/// with blanks for its expansion columns.
+fn tag_rows(
+    version: &Version,
+    section: &Section,
+    index: Option<usize>,
+    mode: MultipleSelect,
+    tag_cols: &[&str],
+) -> Vec<Vec<String>> {
+    let mut rows = Vec::new();
+    for &col in tag_cols {
+        let mut row = Vec::new();
+        let mut any = false;
+        for field in &section.fields {
+            let value = tag_value(&field.tags, col);
+            any |= !value.is_empty();
+            let width = tableflow_schema::columns(version, field, index, mode).len();
+            row.push(value);
+            row.extend(std::iter::repeat_n(String::new(), width.saturating_sub(1)));
+        }
+        if any {
+            rows.push(row);
+        }
+    }
+    rows
+}
+
+/// The value of tag column `col` for a field: the parts of tags matching
+/// `<col>:<value>` joined (no separator for `hxl`, a space otherwise).
+fn tag_value(tags: &[String], col: &str) -> String {
+    let prefix = format!("{col}:");
+    let separator = if col == "hxl" { "" } else { " " };
+    tags.iter()
+        .filter_map(|tag| tag.strip_prefix(&prefix))
+        .collect::<Vec<_>>()
+        .join(separator)
 }
 
 /// The copy-field cell values for one submission.
@@ -113,6 +156,7 @@ pub fn export_tables(
     title: &str,
     mode: MultipleSelect,
     copy_fields: &[&str],
+    tag_cols: &[&str],
 ) -> Vec<Table> {
     let index = tableflow_schema::lang_index(version, lang);
 
@@ -122,7 +166,7 @@ pub fn export_tables(
         .map(|section| Table {
             name: section_name(section, title),
             header: section_header(version, section, index, mode, copy_fields),
-            rows: Vec::new(),
+            rows: tag_rows(version, section, index, mode, tag_cols),
         })
         .collect();
 
