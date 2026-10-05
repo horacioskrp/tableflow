@@ -1,0 +1,11 @@
+{
+  "version": { "content": { "survey": [
+    { "type": "text", "name": "a", "label": "A" },
+    { "type": "image", "name": "photo", "label": "Photo" },
+    { "type": "text", "name": "b", "label": "B" }
+  ] } },
+  "filter_fields": ["a", "b"],
+  "submissions": [
+    { "a": "x", "photo": "p.jpg", "b": "y" }
+  ]
+}
