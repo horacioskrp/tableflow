@@ -1,0 +1,11 @@
+{
+  "force_index": true,
+  "version": { "content": { "survey": [
+    { "type": "text", "name": "a", "label": "A" },
+    { "type": "text", "name": "b", "label": "B" }
+  ] } },
+  "submissions": [
+    { "a": "x", "b": "y" },
+    { "a": "z", "b": "w" }
+  ]
+}

@@ -98,6 +98,8 @@ to CSV, matching the reference exporter.
 - [x] HXL tag header rows (`tag_cols`): a header row per tag column (e.g. `hxl`)
       after the labels, each field's tag at its first value column
       (`hxl_tags` fixture)
+- [x] `force_index`: add an `_index` column to every section even without
+      repeats (`force_index` fixture)
 - [x] `filter_fields`: keep only the listed fields, in survey order
       (`filter_fields` fixture)
 - [x] `include_media_url`: a `<name>_URL` column after each media field, filled
@@ -122,9 +124,12 @@ to CSV, matching the reference exporter.
 
 - [x] Per-field summary (`tableflow-autoreport`): `provided` / `not_provided` /
       `total_count` for every field; a `frequency` table and matching
-      `percentage`s for categorical fields — `text` (by descending count),
-      `select_one` / `select_multiple` (choice labels, by descending count),
-      `date` (chronological); `select_*` and `date` set `show_graph`
+      `percentage`s for categorical fields — text-like types (by descending
+      count), `select_*` (choice labels, by descending count), `date`
+      (chronological); `select_*` and `date` set `show_graph`. Field types are
+      classified as in the reference (numeric / select / date / text / base);
+      notes and analysis (`qual*`/`transcript`/`translation`) fields are omitted
+      (`report_types` fixture)
 - [x] Numeric summaries for `integer` / `decimal`: `mean` / `median` / `mode` /
       `stdev` (`"*"` when undefined), the sum of squared deviations accumulated
       in exact rational arithmetic with a correctly-rounded square root to match

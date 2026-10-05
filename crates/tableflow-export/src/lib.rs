@@ -42,6 +42,8 @@ pub struct Layout<'a> {
     /// Append a `<name>_URL` column after each media field (image/audio/video/
     /// file), filled from the submission's `_attachments`.
     pub include_media_url: bool,
+    /// Add an `_index` column to every section, even without repeats.
+    pub force_index: bool,
 }
 
 impl Default for Layout<'_> {
@@ -55,12 +57,20 @@ impl Default for Layout<'_> {
             tag_cols: &[],
             filter_fields: None,
             include_media_url: false,
+            force_index: false,
         }
     }
 }
 
 /// Media field types that carry an attachment.
-const MEDIA_TYPES: [&str; 4] = ["image", "audio", "video", "file"];
+const MEDIA_TYPES: [&str; 6] = [
+    "image",
+    "audio",
+    "video",
+    "file",
+    "background-audio",
+    "audit",
+];
 
 /// Export the main section's submissions as CSV per `layout`.
 #[must_use]
@@ -70,7 +80,7 @@ pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> Stri
 
     let mut header = field_columns(version, main, index, layout);
     header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
-    if main.has_children {
+    if main.has_children || layout.force_index {
         header.push("_index".to_owned());
     }
 
@@ -81,7 +91,7 @@ pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> Stri
     for (position, submission) in submissions.iter().enumerate() {
         let mut row = field_values(version, main, submission, index, layout);
         row.extend(copy_values(layout.copy_fields, submission, index));
-        if main.has_children {
+        if main.has_children || layout.force_index {
             row.push((position + 1).to_string());
         }
         lines.push(format_line(&row));
@@ -361,7 +371,7 @@ fn emit_section(
     if section.parent.is_none() {
         row.extend(copy_values(layout.copy_fields, data, lang));
     }
-    if section.has_children {
+    if section.has_children || layout.force_index {
         row.push(my_index.to_string());
     }
     if let Some((parent_name, parent_index)) = parent {
@@ -417,7 +427,7 @@ fn section_header(
     if section.parent.is_none() {
         header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
     }
-    if section.has_children {
+    if section.has_children || layout.force_index {
         header.push("_index".to_owned());
     }
     if section.parent.is_some() {

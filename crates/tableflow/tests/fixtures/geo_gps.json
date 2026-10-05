@@ -1,0 +1,14 @@
+{
+  "title": "geo",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "site", "label": "Site" },
+        { "type": "gps", "name": "loc", "label": "Location" }
+      ]
+    }
+  },
+  "submissions": [
+    { "site": "Alpha", "loc": "40.7128 -74.0060 10 5" }
+  ]
+}

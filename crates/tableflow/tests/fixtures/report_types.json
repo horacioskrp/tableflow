@@ -1,0 +1,19 @@
+{
+  "title": "report",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "time", "name": "t", "label": "T" },
+        { "type": "barcode", "name": "bc", "label": "BC" },
+        { "type": "calculate", "name": "calc", "label": "C" },
+        { "type": "range", "name": "rg", "label": "RG" },
+        { "type": "image", "name": "img", "label": "IMG" },
+        { "type": "geopoint", "name": "g", "label": "G" }
+      ]
+    }
+  },
+  "submissions": [
+    { "t": "10:00", "bc": "abc", "calc": "7", "rg": 5, "img": "a.jpg", "g": "1 2 3 4" },
+    { "t": "10:00", "rg": 9 }
+  ]
+}
