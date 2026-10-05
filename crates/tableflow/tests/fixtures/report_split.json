@@ -1,0 +1,24 @@
+{
+  "title": "report",
+  "split_by": "grp",
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "select_one", "select_from_list_name": "g", "name": "grp", "label": "Group" },
+        { "type": "text", "name": "city", "label": "City" },
+        { "type": "select_one", "select_from_list_name": "col", "name": "fav", "label": "Fav" }
+      ],
+      "choices": [
+        { "list_name": "g", "name": "a", "label": "A" },
+        { "list_name": "g", "name": "b", "label": "B" },
+        { "list_name": "col", "name": "r", "label": "Red" },
+        { "list_name": "col", "name": "bl", "label": "Blue" }
+      ]
+    }
+  },
+  "submissions": [
+    { "grp": "a", "city": "Lome", "fav": "r" },
+    { "grp": "a", "city": "Lome", "fav": "bl" },
+    { "grp": "b", "city": "Kara", "fav": "r" }
+  ]
+}

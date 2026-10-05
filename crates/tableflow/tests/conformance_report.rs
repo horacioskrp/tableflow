@@ -37,11 +37,13 @@ fn report_fixtures_match_reference() {
             .expect("submissions array")
             .clone();
         let lang = input.get("lang").and_then(Value::as_str);
+        let split_by = input.get("split_by").and_then(Value::as_str);
 
         let got: Value = serde_json::from_str(&tableflow::export_report(
             &input["version"],
             &submissions,
             lang,
+            split_by,
         ))
         .expect("parse produced report");
         let want: Value =

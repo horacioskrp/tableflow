@@ -18,6 +18,8 @@
 //! bit-for-bit); each is `"*"` when undefined (empty data, a lone value, or a
 //! non-unique mode).
 
+use std::collections::HashMap;
+
 use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::{One, ToPrimitive, Zero};
@@ -75,22 +77,58 @@ pub struct Stats {
     /// Sample standard deviation (numeric fields); `"*"` when undefined.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stdev: Option<Value>,
+    /// Disaggregated breakdown (when a `split_by` field is given): each answer
+    /// paired with its `{frequency, percentage}` across the splitter values.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub values: Option<Vec<(String, Value)>>,
+}
+
+/// A `Stats` with every optional field empty.
+impl Stats {
+    fn counts(total_count: u64, not_provided: u64, provided: u64, show_graph: bool) -> Self {
+        Stats {
+            total_count,
+            not_provided,
+            provided,
+            show_graph,
+            frequency: None,
+            percentage: None,
+            median: None,
+            mean: None,
+            mode: None,
+            stdev: None,
+            values: None,
+        }
+    }
 }
 
 /// Build a [`Report`] over the main section's submissions, labels in `lang`.
+///
+/// When `split_by` names a main-section field, each other field is disaggregated
+/// by that field's values (the split field itself is omitted).
 #[must_use]
-pub fn report(version: &Version, submissions: &[Value], lang: Option<&str>) -> Report {
+pub fn report(
+    version: &Version,
+    submissions: &[Value],
+    lang: Option<&str>,
+    split_by: Option<&str>,
+) -> Report {
     let index = tableflow_schema::lang_index(version, lang);
     let main = &version.sections[0];
+    let split = split_by.and_then(|name| main.fields.iter().find(|f| f.name == name));
 
     let fields = main
         .fields
         .iter()
         .filter(|f| has_stats(f))
+        .filter(|f| split.is_none_or(|s| s.name != f.name))
         .map(|field| FieldReport {
             name: field.name.clone(),
             label: tableflow_schema::header(field, index),
-            stats: field_stats(version, field, submissions, index),
+            stats: match split {
+                Some(split) => disaggregated_stats(version, field, split, submissions, index),
+                None => field_stats(version, field, submissions, index),
+            },
         })
         .collect();
 
@@ -98,6 +136,129 @@ pub fn report(version: &Version, submissions: &[Value], lang: Option<&str>) -> R
         submissions_count: submissions.len() as u64,
         fields,
     }
+}
+
+/// The tokens a field contributes for one submission (`None` when unanswered);
+/// a `select_multiple` yields one per chosen option.
+fn field_tokens(field: &Field, submission: &Value) -> Option<Vec<String>> {
+    match submission.get(&field.path) {
+        None | Some(Value::Null) => None,
+        Some(value) => {
+            let raw = scalar(value);
+            Some(if field.kind == "select_multiple" {
+                raw.split_whitespace().map(str::to_owned).collect()
+            } else {
+                vec![raw]
+            })
+        }
+    }
+}
+
+/// Disaggregated statistics for `field`, broken down by the values of `split`.
+fn disaggregated_stats(
+    version: &Version,
+    field: &Field,
+    split: &Field,
+    submissions: &[Value],
+    index: Option<usize>,
+) -> Stats {
+    const MISSING: &str = "\u{0}none";
+    let mut provided = 0;
+    let mut not_provided = 0;
+    let mut splitter_order: Vec<String> = Vec::new();
+    let mut splitter_counts: Vec<u64> = Vec::new();
+    let mut value_order: Vec<String> = Vec::new();
+    let mut value_metrics: Vec<HashMap<String, u64>> = Vec::new();
+
+    for submission in submissions {
+        let split_value = match submission.get(&split.path) {
+            Some(value) if !value.is_null() => Some(scalar(value)),
+            _ => None,
+        };
+        if let Some(value) = &split_value {
+            match splitter_order.iter().position(|s| s == value) {
+                Some(i) => splitter_counts[i] += 1,
+                None => {
+                    splitter_order.push(value.clone());
+                    splitter_counts.push(1);
+                }
+            }
+        }
+        let splitter_key = split_value.unwrap_or_else(|| MISSING.to_owned());
+
+        match field_tokens(field, submission) {
+            None => not_provided += 1,
+            Some(tokens) => {
+                provided += 1;
+                for token in tokens {
+                    let i = match value_order.iter().position(|v| v == &token) {
+                        Some(i) => i,
+                        None => {
+                            value_order.push(token);
+                            value_metrics.push(HashMap::new());
+                            value_order.len() - 1
+                        }
+                    };
+                    *value_metrics[i].entry(splitter_key.clone()).or_insert(0) += 1;
+                }
+            }
+        }
+    }
+
+    let total_count = provided + not_provided;
+    if !is_categorical(field) {
+        return Stats::counts(total_count, not_provided, provided, false);
+    }
+
+    let mut splitters: Vec<(String, u64)> =
+        splitter_order.into_iter().zip(splitter_counts).collect();
+    splitters.sort_by_key(|s| std::cmp::Reverse(s.1));
+    let top: Vec<String> = splitters.into_iter().take(5).map(|(s, _)| s).collect();
+    let add_ellipsis = top.len() == 5;
+    let is_select = field.kind == "select_one" || field.kind == "select_multiple";
+
+    let mut values: Vec<(String, Value, u64)> = Vec::new();
+    for (i, raw_value) in value_order.iter().enumerate() {
+        let metrics = &value_metrics[i];
+        let mut frequency: Vec<(String, u64)> = Vec::new();
+        let mut percentage: Vec<(String, f64)> = Vec::new();
+        for splitter in &top {
+            let count = *metrics.get(splitter).unwrap_or(&0);
+            let label = translate(version, split, splitter, index);
+            frequency.push((label.clone(), count));
+            percentage.push((label, percent(count, total_count)));
+        }
+        if add_ellipsis {
+            let remaining: u64 = metrics
+                .iter()
+                .filter(|(key, _)| !top.contains(key))
+                .map(|(_, count)| count)
+                .sum();
+            frequency.push(("...".to_owned(), remaining));
+            percentage.push(("...".to_owned(), percent(remaining, total_count)));
+        }
+        let sum: u64 = frequency.iter().map(|(_, count)| count).sum();
+        let display = if is_select {
+            translate(version, field, raw_value, index)
+        } else {
+            raw_value.clone()
+        };
+        values.push((
+            display,
+            json!({ "frequency": frequency, "percentage": percentage }),
+            sum,
+        ));
+    }
+
+    if field.kind == "date" {
+        values.sort_by(|a, b| a.0.cmp(&b.0));
+    } else {
+        values.sort_by_key(|v| std::cmp::Reverse(v.2));
+    }
+
+    let mut stats = Stats::counts(total_count, not_provided, provided, field.kind != "text");
+    stats.values = Some(values.into_iter().map(|(d, s, _)| (d, s)).collect());
+    stats
 }
 
 /// Whether a field is summarized at all (everything but notes).
@@ -157,18 +318,7 @@ fn field_stats(
 
     let total_count = provided + not_provided;
     if !is_categorical(field) {
-        return Stats {
-            total_count,
-            not_provided,
-            provided,
-            show_graph: false,
-            frequency: None,
-            percentage: None,
-            median: None,
-            mean: None,
-            mode: None,
-            stdev: None,
-        };
+        return Stats::counts(total_count, not_provided, provided, false);
     }
 
     let mut pairs: Vec<(String, u64)> = order.into_iter().zip(counts).collect();
@@ -196,18 +346,10 @@ fn field_stats(
         .map(|(value, count)| (value.clone(), percent(*count, total_count)))
         .collect();
 
-    Stats {
-        total_count,
-        not_provided,
-        provided,
-        show_graph: field.kind != "text",
-        frequency: Some(frequency),
-        percentage: Some(percentage),
-        median: None,
-        mean: None,
-        mode: None,
-        stdev: None,
-    }
+    let mut stats = Stats::counts(total_count, not_provided, provided, field.kind != "text");
+    stats.frequency = Some(frequency);
+    stats.percentage = Some(percentage);
+    stats
 }
 
 /// Statistics for a numeric (`integer` / `decimal`) field: counts plus
@@ -239,18 +381,11 @@ fn numeric_stats(field: &Field, submissions: &[Value]) -> Stats {
     }
 
     let star = || Value::String("*".to_owned());
-    let mut stats = Stats {
-        total_count: provided + not_provided,
-        not_provided,
-        provided,
-        show_graph: false,
-        frequency: None,
-        percentage: None,
-        median: Some(star()),
-        mean: Some(star()),
-        mode: Some(star()),
-        stdev: Some(star()),
-    };
+    let mut stats = Stats::counts(provided + not_provided, not_provided, provided, false);
+    stats.median = Some(star());
+    stats.mean = Some(star());
+    stats.mode = Some(star());
+    stats.stdev = Some(star());
 
     // Work on the dataset as f64 (for mean/stdev) while keeping integer values
     // for integer-typed median/mode.
@@ -484,7 +619,7 @@ mod tests {
             json!({ "city": "Lome" }),
             json!({}),
         ];
-        let stats = &report(&version, &subs, None).fields[0].stats;
+        let stats = &report(&version, &subs, None, None).fields[0].stats;
         assert_eq!(stats.provided, 3);
         assert_eq!(stats.not_provided, 1);
         assert_eq!(
