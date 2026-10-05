@@ -129,42 +129,81 @@ impl Version {
     }
 }
 
-/// Merge several form versions into one export canvas (main section only).
+/// Merge several form versions into one export canvas, across every section.
 ///
-/// The column set is built from the **last** version in `versions` first, then
-/// each earlier version contributes only its fields whose names are not yet
-/// present — matching the reference exporter's field ordering across versions.
-/// Submissions carry their own keys, so values are read by field `path` at
-/// export time regardless of which version produced a row.
+/// Sections are matched across versions by their `repeat_path` (the main
+/// section has `None`), in order of first appearance. Within each, the column
+/// set is built from the **last** version first, then each earlier version
+/// contributes only its fields whose names are not yet present — matching the
+/// reference exporter's field ordering across versions. Submissions carry their
+/// own keys, so values are read by field `path` at export time regardless of
+/// which version produced a row.
 ///
-/// Translations and choices are taken from the last version; cross-version
-/// repeat merging is out of scope and only the main section is merged.
+/// Translations and choices are taken from the last version.
 #[must_use]
 pub fn merge_versions(versions: &[Version]) -> Version {
     let Some(last) = versions.last() else {
         return Version::default();
     };
 
-    let mut fields: Vec<Field> = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
-    for version in versions.iter().rev() {
-        let main = version.sections.first();
-        for field in main.map_or(&[][..], |s| s.fields.as_slice()) {
-            if seen.insert(field.name.clone()) {
-                fields.push(field.clone());
+    // Section identity is its `repeat_path`; collect keys in first-appearance
+    // order (the main section's `None` comes first).
+    let mut keys: Vec<Option<String>> = Vec::new();
+    for version in versions {
+        for section in &version.sections {
+            if !keys.contains(&section.repeat_path) {
+                keys.push(section.repeat_path.clone());
             }
         }
+    }
+    let index_of = |key: &Option<String>| keys.iter().position(|k| k == key);
+
+    let mut sections: Vec<Section> = Vec::new();
+    for key in &keys {
+        // Merge this section's fields across versions, newest listed first.
+        let mut fields: Vec<Field> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        for version in versions.iter().rev() {
+            for section in version.sections.iter().filter(|s| &s.repeat_path == key) {
+                for field in &section.fields {
+                    if seen.insert(field.name.clone()) {
+                        fields.push(field.clone());
+                    }
+                }
+            }
+        }
+        // Take name and parent from the newest version carrying this section,
+        // remapping the parent index through the merged section order.
+        let template = versions.iter().rev().find_map(|v| {
+            v.sections
+                .iter()
+                .find(|s| &s.repeat_path == key)
+                .map(|s| (v, s))
+        });
+        let (name, parent) = template.map_or((String::new(), None), |(version, section)| {
+            let parent = section
+                .parent
+                .and_then(|i| version.sections.get(i))
+                .and_then(|p| index_of(&p.repeat_path));
+            (section.name.clone(), parent)
+        });
+        sections.push(Section {
+            name,
+            repeat_path: key.clone(),
+            parent,
+            has_children: false,
+            fields,
+        });
+    }
+
+    // A section has children if any merged section points to it as parent.
+    for i in 0..sections.len() {
+        sections[i].has_children = sections.iter().any(|s| s.parent == Some(i));
     }
 
     Version {
         translations: last.translations.clone(),
-        sections: vec![Section {
-            name: String::new(),
-            repeat_path: None,
-            parent: None,
-            has_children: false,
-            fields,
-        }],
+        sections,
         choices: last.choices.clone(),
     }
 }
