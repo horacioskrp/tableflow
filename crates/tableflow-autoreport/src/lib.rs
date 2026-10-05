@@ -278,7 +278,8 @@ fn disaggregated_stats(
     submissions: &[Value],
     index: Option<usize>,
 ) -> Stats {
-    if field.kind == "integer" || field.kind == "decimal" {
+    let class = classify(&field.kind);
+    if class == Class::Numeric {
         return disaggregated_numeric(version, field, split, submissions, index);
     }
 
@@ -326,7 +327,7 @@ fn disaggregated_stats(
     }
 
     let total_count = provided + not_provided;
-    if !is_categorical(field) {
+    if class == Class::Base {
         return Stats::counts(total_count, not_provided, provided, false);
     }
 
@@ -335,7 +336,7 @@ fn disaggregated_stats(
     splitters.sort_by_key(|s| std::cmp::Reverse(s.1));
     let top: Vec<String> = splitters.into_iter().take(5).map(|(s, _)| s).collect();
     let add_ellipsis = top.len() == 5;
-    let is_select = field.kind == "select_one" || field.kind == "select_multiple";
+    let is_select = class == Class::Select;
 
     let mut values: Vec<(String, Value, u64)> = Vec::new();
     for (i, raw_value) in value_order.iter().enumerate() {
@@ -370,28 +371,76 @@ fn disaggregated_stats(
         ));
     }
 
-    if field.kind == "date" {
+    if class == Class::Date {
         values.sort_by(|a, b| a.0.cmp(&b.0));
     } else {
         values.sort_by_key(|v| std::cmp::Reverse(v.2));
     }
 
-    let mut stats = Stats::counts(total_count, not_provided, provided, field.kind != "text");
+    let show_graph = matches!(class, Class::Select | Class::Date);
+    let mut stats = Stats::counts(total_count, not_provided, provided, show_graph);
     stats.values = Some(values.into_iter().map(|(d, s, _)| (d, s)).collect());
     stats
 }
 
-/// Whether a field is summarized at all (everything but notes).
-fn has_stats(field: &Field) -> bool {
-    field.kind != "note"
+/// How a field is summarized, mirroring the reference's type→class mapping.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Class {
+    /// Numeric summaries (mean/median/mode/stdev).
+    Numeric,
+    /// Choice field: frequency with choice-label values, `show_graph`.
+    Select,
+    /// `date`: frequency ordered chronologically, `show_graph`.
+    Date,
+    /// Text-like field: frequency ordered by descending count, no graph.
+    Text,
+    /// Counts only (geo, `today`/`datetime`/`start`/`end`, unknown types).
+    Base,
 }
 
-/// Whether a field carries a frequency table (vs. counts only).
-fn is_categorical(field: &Field) -> bool {
-    matches!(
-        field.kind.as_str(),
-        "text" | "select_one" | "select_multiple"
-    ) || field.kind == "date"
+/// Numeric field types.
+const NUMERIC_TYPES: [&str; 3] = ["integer", "decimal", "range"];
+/// Choice field types.
+const SELECT_TYPES: [&str; 3] = ["select_one", "select_one_from_file", "select_multiple"];
+/// Text-like field types (frequency, no translation), per the reference.
+const TEXT_TYPES: [&str; 15] = [
+    "text",
+    "barcode",
+    "acknowledge",
+    "calculate",
+    "time",
+    "rank",
+    "select_multiple_from_file",
+    "select_one_external",
+    "cascading_select",
+    "video",
+    "image",
+    "audio",
+    "file",
+    "background-audio",
+    "audit",
+];
+
+/// Classify a field by its type.
+fn classify(kind: &str) -> Class {
+    if NUMERIC_TYPES.contains(&kind) {
+        Class::Numeric
+    } else if SELECT_TYPES.contains(&kind) {
+        Class::Select
+    } else if kind == "date" {
+        Class::Date
+    } else if TEXT_TYPES.contains(&kind) {
+        Class::Text
+    } else {
+        Class::Base
+    }
+}
+
+/// Whether a field is summarized at all: notes and analysis (qual/NLP) fields
+/// carry no stats in the reference.
+fn has_stats(field: &Field) -> bool {
+    let kind = field.kind.as_str();
+    kind != "note" && !kind.starts_with("qual") && kind != "transcript" && kind != "translation"
 }
 
 /// Compute one field's statistics across `submissions`.
@@ -401,7 +450,8 @@ fn field_stats(
     submissions: &[Value],
     index: Option<usize>,
 ) -> Stats {
-    if field.kind == "integer" || field.kind == "decimal" {
+    let class = classify(&field.kind);
+    if class == Class::Numeric {
         return numeric_stats(field, submissions);
     }
 
@@ -437,22 +487,21 @@ fn field_stats(
     }
 
     let total_count = provided + not_provided;
-    if !is_categorical(field) {
+    if class == Class::Base {
         return Stats::counts(total_count, not_provided, provided, false);
     }
 
     let mut pairs: Vec<(String, u64)> = order.into_iter().zip(counts).collect();
-    if field.kind == "date" {
+    if class == Class::Date {
         pairs.sort_by(|a, b| a.0.cmp(&b.0));
     } else {
         pairs.sort_by_key(|a| std::cmp::Reverse(a.1));
     }
 
-    let is_select = field.kind == "select_one" || field.kind == "select_multiple";
     let frequency: Vec<(String, u64)> = pairs
         .into_iter()
         .map(|(value, count)| {
-            let display = if is_select {
+            let display = if class == Class::Select {
                 translate(version, field, &value, index)
             } else {
                 value
@@ -466,7 +515,8 @@ fn field_stats(
         .map(|(value, count)| (value.clone(), percent(*count, total_count)))
         .collect();
 
-    let mut stats = Stats::counts(total_count, not_provided, provided, field.kind != "text");
+    let show_graph = matches!(class, Class::Select | Class::Date);
+    let mut stats = Stats::counts(total_count, not_provided, provided, show_graph);
     stats.frequency = Some(frequency);
     stats.percentage = Some(percentage);
     stats

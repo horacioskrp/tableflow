@@ -1,0 +1,18 @@
+{
+  "include_media_url": true,
+  "version": { "content": { "survey": [
+    { "type": "image", "name": "img", "label": "IMG" },
+    { "type": "background-audio", "name": "ba", "label": "BA" },
+    { "type": "file", "name": "doc", "label": "DOC" }
+  ] } },
+  "submissions": [
+    {
+      "img": "i.jpg", "ba": "b.m4a", "doc": "d.pdf",
+      "_attachments": [
+        { "filename": "x/i.jpg", "download_url": "https://h/i.jpg" },
+        { "filename": "x/b.m4a", "download_url": "https://h/b.m4a" },
+        { "filename": "x/d.pdf", "download_url": "https://h/d.pdf" }
+      ]
+    }
+  ]
+}

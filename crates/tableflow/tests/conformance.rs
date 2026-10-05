@@ -100,6 +100,10 @@ fn csv_fixtures_match_reference() {
             .get("include_media_url")
             .and_then(Value::as_bool)
             .unwrap_or(false);
+        let force_index = input
+            .get("force_index")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         let layout = tableflow::Layout {
             lang,
             multiple_select: tableflow::MultipleSelect::parse(mode),
@@ -109,6 +113,7 @@ fn csv_fixtures_match_reference() {
             tag_cols: &tag_cols,
             filter_fields: filter_refs.as_deref(),
             include_media_url,
+            force_index,
         };
 
         let tables_path = dir.join(format!("{stem}.tables"));
