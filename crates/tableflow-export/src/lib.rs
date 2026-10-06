@@ -7,6 +7,8 @@
 //! (`select_multiple` expands per [`MultipleSelect`]). Output is `;`-separated
 //! with every field double-quoted (inner quotes doubled).
 
+use std::io::{self, Write};
+
 use serde_json::Value;
 use tableflow_core::{Section, Version};
 pub use tableflow_schema::MultipleSelect;
@@ -73,30 +75,65 @@ const MEDIA_TYPES: [&str; 6] = [
 ];
 
 /// Export the main section's submissions as CSV per `layout`.
+///
+/// Rows are `\n`-separated with no trailing newline. For large exports, prefer
+/// [`write_csv`], which streams to any [`std::io::Write`] without buffering the
+/// whole output in memory.
 #[must_use]
 pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> String {
+    let mut buffer = Vec::new();
+    // Writing to a `Vec<u8>` cannot fail, and every byte written is UTF-8.
+    write_csv(&mut buffer, version, submissions, layout)
+        .expect("in-memory CSV write is infallible");
+    String::from_utf8(buffer).expect("CSV output is valid UTF-8")
+}
+
+/// Stream the main section's submissions as CSV into `writer`.
+///
+/// Same output as [`to_csv`] (rows `\n`-separated, no trailing newline) but
+/// written row by row, so the full export is never held in memory.
+///
+/// # Errors
+///
+/// Propagates any error from `writer`.
+pub fn write_csv<W: Write>(
+    writer: &mut W,
+    version: &Version,
+    submissions: &[Value],
+    layout: &Layout,
+) -> io::Result<()> {
     let index = tableflow_schema::lang_index(version, layout.lang);
     let main = &version.sections[0];
+    let indexed = main.has_children || layout.force_index;
 
     let mut header = field_columns(version, main, index, layout);
     header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
-    if main.has_children || layout.force_index {
+    if indexed {
         header.push("_index".to_owned());
     }
 
-    let mut lines = vec![format_line(&header)];
+    let mut first = true;
+    let mut write_line = |writer: &mut W, cells: &[String]| -> io::Result<()> {
+        if !first {
+            writer.write_all(b"\n")?;
+        }
+        first = false;
+        write_line_to(writer, cells)
+    };
+
+    write_line(writer, &header)?;
     for tag_row in tag_rows(version, main, index, layout) {
-        lines.push(format_line(&tag_row));
+        write_line(writer, &tag_row)?;
     }
     for (position, submission) in submissions.iter().enumerate() {
         let mut row = field_values(version, main, submission, index, layout);
         row.extend(copy_values(layout.copy_fields, submission, index));
-        if main.has_children || layout.force_index {
+        if indexed {
             row.push((position + 1).to_string());
         }
-        lines.push(format_line(&row));
+        write_line(writer, &row)?;
     }
-    lines.join("\n")
+    Ok(())
 }
 
 /// The tag header rows (one per `tag_col` that any field carries) for a
@@ -439,6 +476,28 @@ fn section_header(
 
 /// Quote every cell with `"`, double inner quotes, and join with `;`.
 fn format_line(cells: &[String]) -> String {
-    let escaped: Vec<String> = cells.iter().map(|c| c.replace('"', "\"\"")).collect();
-    format!("\"{}\"", escaped.join("\";\""))
+    let mut buffer = Vec::new();
+    write_line_to(&mut buffer, cells).expect("in-memory line write is infallible");
+    String::from_utf8(buffer).expect("CSV line is valid UTF-8")
+}
+
+/// Write one line of cells to `writer`: each cell wrapped in `"`, inner quotes
+/// doubled, cells joined with `;`. No trailing newline.
+fn write_line_to<W: Write>(writer: &mut W, cells: &[String]) -> io::Result<()> {
+    for (i, cell) in cells.iter().enumerate() {
+        if i > 0 {
+            writer.write_all(b";")?;
+        }
+        writer.write_all(b"\"")?;
+        // Double any `"` inside the cell.
+        let mut rest = cell.as_str();
+        while let Some(pos) = rest.find('"') {
+            writer.write_all(&rest.as_bytes()[..pos])?;
+            writer.write_all(b"\"\"")?;
+            rest = &rest[pos + 1..];
+        }
+        writer.write_all(rest.as_bytes())?;
+        writer.write_all(b"\"")?;
+    }
+    Ok(())
 }
