@@ -7,6 +7,9 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 description = "Field type system: format submission values into export cells for tableflow."
+readme = "README.md"
+keywords = ["xlsform", "survey", "select", "translations", "tableflow"]
+categories = ["encoding"]
 
 [dependencies]
 tableflow-core.workspace = true

@@ -7,6 +7,9 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 description = "Core data model (FormPack, Version, Section, Field, Submission) for tableflow."
+readme = "README.md"
+keywords = ["xlsform", "survey", "forms", "data-model", "tableflow"]
+categories = ["data-structures"]
 
 [dependencies]
 serde_json.workspace = true
