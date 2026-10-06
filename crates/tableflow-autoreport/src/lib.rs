@@ -593,9 +593,9 @@ fn numeric_summary(
 
     stdev = json!(sample_stdev(&data, mean_f));
     mode = if integer {
-        unique_mode(&ints).map_or_else(star, |m| json!(m))
+        unique_mode_int(&ints).map_or_else(star, |m| json!(m))
     } else {
-        unique_mode(&floats).map_or_else(star, |m| json!(m))
+        unique_mode_float(&floats).map_or_else(star, |m| json!(m))
     };
     (median, mean, mode, stdev)
 }
@@ -711,23 +711,33 @@ fn integer_sqrt_of_frac_rto(n: &BigInt, m: &BigInt) -> BigInt {
     }
 }
 
-/// The single most frequent value (first-seen order on ties), or `None` when
-/// more than one value shares the top frequency.
-fn unique_mode<T: PartialEq + Copy>(values: &[T]) -> Option<T> {
-    let mut order: Vec<T> = Vec::new();
-    let mut counts: Vec<u64> = Vec::new();
+/// The single most frequent integer, or `None` when more than one value shares
+/// the top frequency (O(n) via a hash count).
+fn unique_mode_int(values: &[i64]) -> Option<i64> {
+    let mut counts: HashMap<i64, u64> = HashMap::new();
     for &v in values {
-        match order.iter().position(|x| *x == v) {
-            Some(i) => counts[i] += 1,
-            None => {
-                order.push(v);
-                counts.push(1);
-            }
-        }
+        *counts.entry(v).or_insert(0) += 1;
     }
-    let max = *counts.iter().max()?;
-    let mut modes = order.iter().zip(&counts).filter(|(_, c)| **c == max);
-    let first = *modes.next()?.0;
+    let max = counts.values().copied().max()?;
+    let mut modes = counts.iter().filter(|&(_, &c)| c == max).map(|(&v, _)| v);
+    let first = modes.next()?;
+    match modes.next() {
+        Some(_) => None,
+        None => Some(first),
+    }
+}
+
+/// The single most frequent float, or `None` when more than one value shares
+/// the top frequency. Keyed by bit pattern (the data are finite).
+fn unique_mode_float(values: &[f64]) -> Option<f64> {
+    let mut counts: HashMap<u64, (f64, u64)> = HashMap::new();
+    for &v in values {
+        let entry = counts.entry(v.to_bits()).or_insert((v, 0));
+        entry.1 += 1;
+    }
+    let max = counts.values().map(|&(_, c)| c).max()?;
+    let mut modes = counts.values().filter(|&&(_, c)| c == max).map(|&(v, _)| v);
+    let first = modes.next()?;
     match modes.next() {
         Some(_) => None,
         None => Some(first),

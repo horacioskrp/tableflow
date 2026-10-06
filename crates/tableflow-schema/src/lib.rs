@@ -106,6 +106,21 @@ pub fn columns(
     cols
 }
 
+/// How many columns a field contributes, without building the header strings.
+#[must_use]
+pub fn column_count(version: &Version, field: &Field, mode: MultipleSelect) -> usize {
+    if field.kind != "select_multiple" {
+        return 1;
+    }
+    let summary = usize::from(mode.has_summary());
+    let details = if mode.has_details() {
+        choices(version, field).len() + usize::from(field.or_other)
+    } else {
+        0
+    };
+    summary + details
+}
+
 /// The cell value(s) a field contributes for a submission value.
 #[must_use]
 pub fn values(
