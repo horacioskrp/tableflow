@@ -6,6 +6,13 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Streaming CSV: `tableflow_export::write_csv` and the `tableflow::export_csv_to`
+  facade write the main-section CSV row by row into any `std::io::Write`, so a
+  large export is never fully buffered in memory. `to_csv` / `export_csv` now
+  delegate to it (output unchanged — rows `\n`-separated, no trailing newline).
+
 ### Performance
 
 - Report frequency tallies are now linear: the per-field value counter,
