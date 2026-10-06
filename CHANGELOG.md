@@ -6,6 +6,11 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-06
+
+No code changes. First version published to crates.io: `v0.1.0` was tagged
+before the release workflow existed, so publishing starts at `0.1.1`.
+
 ## [0.1.0] - 2026-10-05
 
 First release: CSV, multi-section text, XLSX, GeoJSON and per-field report
