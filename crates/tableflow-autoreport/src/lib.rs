@@ -687,6 +687,9 @@ fn float_sqrt_of_frac(n: &BigInt, m: &BigInt) -> f64 {
     if n.is_zero() {
         return 0.0;
     }
+    // Scale the numerator to this many bits before the integer sqrt so the final
+    // conversion is correctly rounded — the constant CPython uses in
+    // `statistics._float_sqrt_of_frac` (comfortably above f64's 53-bit mantissa).
     const SQRT_BIT_WIDTH: i64 = 109;
     let q = (n.bits() as i64 - m.bits() as i64 - SQRT_BIT_WIDTH).div_euclid(2);
     if q >= 0 {

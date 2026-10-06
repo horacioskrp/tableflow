@@ -26,7 +26,7 @@ pub struct Table {
 }
 
 /// Export options: language, `select_multiple` mode, header layout and extras.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Layout<'a> {
     /// Language for labels (`None` = names mode).
     pub lang: Option<&'a str>,
