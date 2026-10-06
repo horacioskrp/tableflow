@@ -1,4 +1,455 @@
 //! Core data model shared across the tableflow export pipeline.
 //!
-//! Scaffolding only (Phase 0). The `FormPack` / `Version` / `Section` /
-//! `Field` / `Submission` types and cell values land in Phase 1.
+//! A [`Version`] holds its `translations`, its `choices` and a list of
+//! [`Section`]s. Section 0 is the main table; each `repeat` adds another section
+//! linked to its parent. Non-repeat groups do not add a section — their fields
+//! flatten into the enclosing section, keeping a short name but a full,
+//! `/`-joined submission `path`.
+
+use std::collections::HashSet;
+
+use serde_json::Value;
+
+/// A survey field — one logical column of the export.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Field {
+    /// Field name: the header in "names" mode (short, not group-prefixed).
+    pub name: String,
+    /// Full submission key: the field name prefixed by enclosing group / repeat
+    /// names, joined with `/` (e.g. `household/location`).
+    pub path: String,
+    /// XLSForm `type` token (e.g. `text`, `integer`, `select_one`).
+    pub kind: String,
+    /// Labels indexed by [`Version::translations`]; empty when untranslated.
+    pub labels: Vec<String>,
+    /// Choice list name, for `select_one` / `select_multiple`.
+    pub list_name: Option<String>,
+    /// Whether the select offers a free-text "other" option (`or_other`); adds
+    /// an `/other` details column for `select_multiple`.
+    pub or_other: bool,
+    /// Field tags (e.g. `hxl:#code`), used for tag header rows.
+    pub tags: Vec<String>,
+    /// Enclosing groups / repeats, outermost first, for `hierarchy_in_labels`.
+    pub group_path: Vec<GroupLabel>,
+}
+
+/// An enclosing group or repeat, for building hierarchical headers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GroupLabel {
+    /// Group name.
+    pub name: String,
+    /// Labels indexed by [`Version::translations`]; empty when untranslated.
+    pub labels: Vec<String>,
+}
+
+/// A table of the export: the main section (index 0) or a repeat.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Section {
+    /// Repeat name; the main section's name is empty (resolved to the export
+    /// title at export time).
+    pub name: String,
+    /// The repeat's full submission path (the key holding the list of rows);
+    /// `None` for the main section.
+    pub repeat_path: Option<String>,
+    /// Index of the parent section, or `None` for the main section.
+    pub parent: Option<usize>,
+    /// Whether this section contains a repeat (→ gets an `_index` column).
+    pub has_children: bool,
+    /// Value fields of this section, in order.
+    pub fields: Vec<Field>,
+}
+
+/// One option of a choice list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Choice {
+    /// Stored value (the submission uses this).
+    pub name: String,
+    /// Labels indexed by [`Version::translations`].
+    pub labels: Vec<String>,
+}
+
+/// A named list of choices.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChoiceList {
+    /// List name referenced by `select_*` fields.
+    pub name: String,
+    /// Options in declaration order.
+    pub items: Vec<Choice>,
+}
+
+/// One form version: translations, sections (main + repeats) and choice lists.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Version {
+    /// Declared translations, in order; empty for an untranslated form.
+    pub translations: Vec<String>,
+    /// Sections; index 0 is the main table.
+    pub sections: Vec<Section>,
+    /// Choice lists from the `choices` sheet.
+    pub choices: Vec<ChoiceList>,
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Version {
+            translations: Vec::new(),
+            sections: vec![Section {
+                name: String::new(),
+                repeat_path: None,
+                parent: None,
+                has_children: false,
+                fields: Vec::new(),
+            }],
+            choices: Vec::new(),
+        }
+    }
+}
+
+impl Version {
+    /// The options of choice list `list` (empty if the list is unknown).
+    #[must_use]
+    pub fn choices_of(&self, list: &str) -> &[Choice] {
+        self.choices
+            .iter()
+            .find(|c| c.name == list)
+            .map_or(&[], |c| c.items.as_slice())
+    }
+
+    /// The label of choice `name` in list `list` for translation `index`.
+    #[must_use]
+    pub fn choice_label(&self, list: &str, name: &str, index: usize) -> Option<&str> {
+        self.choices
+            .iter()
+            .find(|c| c.name == list)?
+            .items
+            .iter()
+            .find(|item| item.name == name)?
+            .labels
+            .get(index)
+            .map(String::as_str)
+    }
+}
+
+/// Merge several form versions into one export canvas, across every section.
+///
+/// Sections are matched across versions by their `repeat_path` (the main
+/// section has `None`), in order of first appearance. Within each, the column
+/// set is built from the **last** version first, then each earlier version
+/// contributes only its fields whose names are not yet present — matching the
+/// reference exporter's field ordering across versions. Submissions carry their
+/// own keys, so values are read by field `path` at export time regardless of
+/// which version produced a row.
+///
+/// Translations and choices are taken from the last version.
+#[must_use]
+pub fn merge_versions(versions: &[Version]) -> Version {
+    let Some(last) = versions.last() else {
+        return Version::default();
+    };
+
+    // Section identity is its `repeat_path`; collect keys in first-appearance
+    // order (the main section's `None` comes first).
+    let mut keys: Vec<Option<String>> = Vec::new();
+    for version in versions {
+        for section in &version.sections {
+            if !keys.contains(&section.repeat_path) {
+                keys.push(section.repeat_path.clone());
+            }
+        }
+    }
+    let index_of = |key: &Option<String>| keys.iter().position(|k| k == key);
+
+    let mut sections: Vec<Section> = Vec::new();
+    for key in &keys {
+        // Merge this section's fields across versions, newest listed first.
+        let mut fields: Vec<Field> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        for version in versions.iter().rev() {
+            for section in version.sections.iter().filter(|s| &s.repeat_path == key) {
+                for field in &section.fields {
+                    if seen.insert(field.name.clone()) {
+                        fields.push(field.clone());
+                    }
+                }
+            }
+        }
+        // Take name and parent from the newest version carrying this section,
+        // remapping the parent index through the merged section order.
+        let template = versions.iter().rev().find_map(|v| {
+            v.sections
+                .iter()
+                .find(|s| &s.repeat_path == key)
+                .map(|s| (v, s))
+        });
+        let (name, parent) = template.map_or((String::new(), None), |(version, section)| {
+            let parent = section
+                .parent
+                .and_then(|i| version.sections.get(i))
+                .and_then(|p| index_of(&p.repeat_path));
+            (section.name.clone(), parent)
+        });
+        sections.push(Section {
+            name,
+            repeat_path: key.clone(),
+            parent,
+            has_children: false,
+            fields,
+        });
+    }
+
+    // A section has children if any merged section points to it as parent.
+    for i in 0..sections.len() {
+        sections[i].has_children = sections.iter().any(|s| s.parent == Some(i));
+    }
+
+    Version {
+        translations: last.translations.clone(),
+        sections,
+        choices: last.choices.clone(),
+    }
+}
+
+/// Parse a version schema into a [`Version`] (translations, sections, choices).
+#[must_use]
+pub fn parse_version(schema: &Value) -> Version {
+    let content = schema.get("content");
+    let get = |key| content.and_then(|c| c.get(key)).and_then(Value::as_array);
+
+    let translations = get("translations")
+        .map(|arr| {
+            arr.iter()
+                .map(|t| t.as_str().unwrap_or_default().to_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut version = Version {
+        translations,
+        ..Version::default()
+    };
+    parse_sections(get("survey").unwrap_or(&Vec::new()), &mut version.sections);
+    version.choices = parse_choices(get("choices").unwrap_or(&Vec::new()));
+    version
+}
+
+/// Walk the survey rows, assigning fields to the main section and to a new
+/// section per repeat; non-repeat groups only extend the submission path.
+fn parse_sections(rows: &[Value], sections: &mut Vec<Section>) {
+    let mut prefix: Vec<String> = Vec::new();
+    let mut stack: Vec<usize> = vec![0];
+    let mut groups: Vec<GroupLabel> = Vec::new();
+
+    for row in rows {
+        let kind = row.get("type").and_then(Value::as_str).unwrap_or_default();
+        let name = row.get("name").and_then(Value::as_str).unwrap_or_default();
+
+        match kind.replace(' ', "_").as_str() {
+            "begin_group" => {
+                prefix.push(name.to_owned());
+                groups.push(GroupLabel {
+                    name: name.to_owned(),
+                    labels: labels_of(row.get("label")),
+                });
+                continue;
+            }
+            "end_group" => {
+                prefix.pop();
+                groups.pop();
+                continue;
+            }
+            "begin_repeat" => {
+                prefix.push(name.to_owned());
+                groups.push(GroupLabel {
+                    name: name.to_owned(),
+                    labels: labels_of(row.get("label")),
+                });
+                let current = *stack.last().expect("non-empty stack");
+                let new_index = sections.len();
+                sections.push(Section {
+                    name: name.to_owned(),
+                    repeat_path: Some(prefix.join("/")),
+                    parent: Some(current),
+                    has_children: false,
+                    fields: Vec::new(),
+                });
+                sections[current].has_children = true;
+                stack.push(new_index);
+                continue;
+            }
+            "end_repeat" => {
+                prefix.pop();
+                groups.pop();
+                stack.pop();
+                continue;
+            }
+            _ => {}
+        }
+
+        if name.is_empty() {
+            continue;
+        }
+        let path = if prefix.is_empty() {
+            name.to_owned()
+        } else {
+            format!("{}/{name}", prefix.join("/"))
+        };
+        let current = *stack.last().expect("non-empty stack");
+        let (stripped, type_or_other) = split_or_other(kind);
+        let base_kind = stripped
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+            .to_owned();
+        let or_other = type_or_other
+            || row
+                .get("or_other")
+                .or_else(|| row.get("_or_other"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+
+        sections[current].fields.push(Field {
+            name: name.to_owned(),
+            path: path.clone(),
+            kind: base_kind.clone(),
+            labels: labels_of(row.get("label")),
+            list_name: list_name_of(row, &stripped),
+            or_other,
+            tags: tags_of(row.get("tags")),
+            group_path: groups.clone(),
+        });
+
+        // `or_other` selects carry a companion free-text field `<name>_other`.
+        if or_other && (base_kind == "select_one" || base_kind == "select_multiple") {
+            sections[current].fields.push(Field {
+                name: format!("{name}_other"),
+                path: format!("{path}_other"),
+                kind: "text".to_owned(),
+                labels: Vec::new(),
+                list_name: None,
+                or_other: false,
+                tags: Vec::new(),
+                group_path: groups.clone(),
+            });
+        }
+    }
+}
+
+/// Split a `type` string into its base type and whether it declares `or_other`
+/// (via a trailing ` or_other` / ` or-other`, or a `select_*_or_other` form).
+fn split_or_other(type_str: &str) -> (String, bool) {
+    let mut base = type_str.trim().to_owned();
+    let mut or_other = false;
+
+    if let Some(index) = base.rfind(char::is_whitespace) {
+        let tail = base[index..].trim();
+        if tail == "or_other" || tail == "or-other" {
+            or_other = true;
+            base = base[..index].trim().to_owned();
+        }
+    }
+    if base.contains("_or_other") {
+        or_other = true;
+        base = base.replace("_or_other", "");
+    }
+    (base, or_other)
+}
+
+/// Parse `content.choices` into choice lists, grouped by `list_name`.
+fn parse_choices(rows: &[Value]) -> Vec<ChoiceList> {
+    let mut choices: Vec<ChoiceList> = Vec::new();
+    for row in rows {
+        let Some(list) = row.get("list_name").and_then(Value::as_str) else {
+            continue;
+        };
+        let choice = Choice {
+            name: row
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            labels: labels_of(row.get("label")),
+        };
+        match choices.iter_mut().find(|c| c.name == list) {
+            Some(existing) => existing.items.push(choice),
+            None => choices.push(ChoiceList {
+                name: list.to_owned(),
+                items: vec![choice],
+            }),
+        }
+    }
+    choices
+}
+
+/// Normalize a `label` cell (absent / string / per-translation list) into a
+/// list of labels.
+fn labels_of(value: Option<&Value>) -> Vec<String> {
+    match value {
+        Some(Value::String(s)) => vec![s.clone()],
+        Some(Value::Array(items)) => items
+            .iter()
+            .map(|v| v.as_str().unwrap_or_default().to_owned())
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Parse a `tags` cell (absent / string / list) into a list of tag strings.
+fn tags_of(value: Option<&Value>) -> Vec<String> {
+    match value {
+        Some(Value::String(s)) => vec![s.clone()],
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter_map(|v| v.as_str().map(str::to_owned))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The choice-list name for a select field: `select_from_list_name`, or the
+/// second token of a `select_one <list>` / `select_multiple <list>` type.
+fn list_name_of(row: &Value, kind: &str) -> Option<String> {
+    if let Some(list) = row.get("select_from_list_name").and_then(Value::as_str) {
+        return Some(list.to_owned());
+    }
+    let mut parts = kind.split_whitespace();
+    match parts.next() {
+        Some("select_one" | "select_multiple") => parts.next().map(str::to_owned),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{merge_versions, parse_version};
+
+    #[test]
+    fn merge_leads_with_last_version_then_older_new_fields() {
+        let v1 = parse_version(&json!({ "content": { "survey": [
+            { "type": "text", "name": "a" },
+            { "type": "text", "name": "color" },
+        ] } }));
+        let v2 = parse_version(&json!({ "content": { "survey": [
+            { "type": "text", "name": "a2" },
+            { "type": "text", "name": "b" },
+            { "type": "text", "name": "color" },
+        ] } }));
+
+        let names = |versions: &[super::Version]| {
+            merge_versions(versions).sections[0]
+                .fields
+                .iter()
+                .map(|f| f.name.clone())
+                .collect::<Vec<_>>()
+        };
+
+        // Last listed version first, then each older version's new fields.
+        assert_eq!(names(&[v1.clone(), v2.clone()]), ["a2", "b", "color", "a"]);
+        assert_eq!(names(&[v2, v1]), ["a", "color", "a2", "b"]);
+    }
+
+    #[test]
+    fn merge_of_empty_selection_is_default() {
+        assert_eq!(merge_versions(&[]), super::Version::default());
+    }
+}

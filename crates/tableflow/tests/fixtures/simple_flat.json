@@ -1,0 +1,16 @@
+{
+  "version": {
+    "content": {
+      "survey": [
+        { "type": "text", "name": "name", "label": "Your name" },
+        { "type": "integer", "name": "age", "label": "Your age" },
+        { "type": "decimal", "name": "score", "label": "Score" }
+      ]
+    }
+  },
+  "submissions": [
+    { "name": "Alice", "age": 30, "score": 9.5 },
+    { "name": "Bob \"the builder\"", "age": 25, "score": 7 },
+    { "name": "Chloé", "age": "", "score": "" }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "type": "FeatureCollection",
+  "name": "geo",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-74.006, 40.7128, 10.0] },
+      "properties": { "site": "Alpha" }
+    }
+  ]
+}

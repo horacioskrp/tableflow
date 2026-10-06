@@ -37,11 +37,11 @@ Given one or more form **versions** (XLSForm content) and a stream of
 | `tableflow-content` | XLSForm content normalization (aliases, expansion) |
 | `tableflow-schema` | Field type system: submission value → export cell(s) |
 | `tableflow-export` | Export engine: field canvas, repeat flattening, translations |
+| `tableflow-xlsx` | XLSX serializer: one worksheet per exported table |
+| `tableflow-geojson` | GeoJSON serializer: geo responses to a `FeatureCollection` |
+| `tableflow-autoreport` | Per-field summary report: counts, frequencies, percentages |
 | `tableflow` | End-to-end facade |
 | `tableflow-cli` | Command-line interface |
-
-Format serializers (`-csv`, `-xlsx`, `-geojson`) and `-autoreport` are added as
-their phases land.
 
 ## Development
 

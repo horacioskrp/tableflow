@@ -1,0 +1,27 @@
+{
+  "sheets": [
+    {
+      "name": "submissions",
+      "rows": [
+        [
+          "Nom",
+          "Âge",
+          "Couleur",
+          "Date"
+        ],
+        [
+          "Alice",
+          "30",
+          "Rouge",
+          "2024-01-02"
+        ],
+        [
+          "Bob",
+          "25",
+          "Bleu",
+          "2024-03-04"
+        ]
+      ]
+    }
+  ]
+}

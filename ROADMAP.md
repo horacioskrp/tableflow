@@ -6,70 +6,140 @@ exporter (after format-aware normalization) and CI is green.
 
 | Phase | Theme | Status |
 | ----- | ----------------------------------------------------- | ------ |
-| 0 | Workspace, CI, Docker & conformance harness | 🚧 in progress |
-| 1 | Walking skeleton — one version → CSV of a flat form | ☐ |
-| 2 | Field type system & translations | ☐ |
-| 3 | Groups & repeats → linked tables | ☐ |
-| 4 | `select_multiple` expansion | ☐ |
-| 5 | Multi-version field canvas | ☐ |
-| 6 | XLSX output & header options | ☐ |
-| 7 | GeoJSON / KML, SPSS labels, attachments | ☐ |
-| 8 | Automatic per-field report | ☐ |
+| 0 | Workspace, CI, Docker & conformance harness | ✅ done |
+| 1 | Walking skeleton — one version → CSV of a flat form | ✅ done |
+| 2 | Field type system & translations | ✅ done |
+| 3 | Groups & repeats → linked tables | ✅ done |
+| 4 | `select_multiple` expansion | ✅ done |
+| 5 | Multi-version field canvas | ✅ done |
+| 6 | XLSX output & header options | ✅ done |
+| 7 | GeoJSON (KML / SPSS deferred) | ✅ done |
+| 8 | Automatic per-field report | ✅ done |
 
-## Phase 0 — Workspace & harness 🚧
+## Phase 0 — Workspace & harness ✅
 
 - [x] Cargo workspace (edition 2024), pipeline crates, CLI scaffold
 - [x] `.gitattributes` (LF), CI (`fmt` / `clippy -D warnings` / `build` / `test`)
 - [x] Docker build wrapper (`scripts/docker-dev.ps1`)
-- [ ] Conformance harness: a data-driven runner that compares a generated
-      export against its golden after format-aware normalization
-- [ ] **GO:** green `build` / `test` / `clippy` / `fmt`
+- [x] Conformance harness: a data-driven runner (`csv_fixtures_match_reference`)
+      that compares each fixture's export against its committed golden
+- [x] **GO:** green `build` / `test` / `clippy` / `fmt`
 
 ## Phase 1 — Walking skeleton
 
 A flat, single-version, single-language form with simple question types exports
 to CSV, matching the reference exporter.
 
-- [ ] Load one version's content into the model (sections + fields)
-- [ ] Map submissions onto the field canvas; emit CSV rows
-- [ ] **GO:** the simplest form's CSV golden matches
+- [x] Load one version's content into the model (fields)
+- [x] Map submissions onto the field canvas; emit CSV rows (`;`-separated,
+      every field quoted, quotes doubled; default header = field names)
+- [x] **GO:** the simplest form's CSV golden matches (`simple_flat` fixture)
 
 ## Phase 2 — Field types & translations
 
-- [ ] Per-type value formatting (text/int/decimal/date/time/geo/calculate/…)
-- [ ] `lang` selection; render coded choice values as labels
-- [ ] **GO:** typed and translated CSV goldens match
+- [x] Per-type value formatting: scalar passthrough (text/int/decimal/date/
+      time/dateTime/geo); `select_one` value → choice label
+- [x] `lang` selection → label headers and translated choice values; names mode
+      (unspecified/untranslated/unknown language) keeps names and raw values
+- [x] **GO:** translated CSV goldens match (`translated_{default,en,fr}`)
 
-## Phase 3 — Groups & repeats
+## Phase 3 — Groups & repeats ✅
 
-- [ ] Each repeat group becomes its own table, linked by `_index` /
-      `_parent_index`; `group_sep` and `hierarchy_in_labels`
-- [ ] **GO:** grouped / (nested) repeatable goldens match
+- [x] 3a — Non-repeat groups: fields flatten into the main table, keeping their
+      short name/label as header and reading values by full submission path
+      (`grouped_{default,en}`)
+- [x] 3b — Each repeat becomes its own table (`Section` model + `export_tables`),
+      linked by `_index` / `_parent_table_name` / `_parent_index`; multi-section
+      conformance via a framed `.tables` golden (`repeat_tables`)
+- [x] **GO:** grouped and repeatable goldens match
+- [x] Nested repeats beyond one level (repeat within a repeat), linked through
+      each level (`nested_repeats` fixture)
+- [x] `hierarchy_in_labels`: each header prefixed by its enclosing groups'
+      labels (or names), joined by `group_sep` — which also separates the
+      `select_multiple` expansion columns (`hierarchy_labels`, `hierarchy_sep`)
 
-## Phase 4 — `select_multiple`
+## Phase 4 — `select_multiple` ✅
 
-- [ ] `both` / `summary` / `details`: joined cell and/or per-choice booleans;
-      `or_other`
-- [ ] **GO:** multiple-select goldens match for all three modes
+- [x] `both` / `summary` / `details`: a joined summary column (names or labels)
+      and/or one `field/choice` boolean column per option; headers and summary
+      values honor the language
+- [x] **GO:** multiple-select goldens match for all three modes
+      (`selmulti_{both,summary,details}`, `selmulti_en_both`)
+- [x] `or_other`: an `/other` details column (set when `other` is selected) plus
+      a companion `<name>_other` free-text column (`selmulti_or_other`)
 
-## Phase 5 — Multiple versions
+## Phase 5 — Multiple versions ✅
 
-- [ ] Merge fields added / removed / edited across versions into one column
-      canvas; version-id handling
-- [ ] **GO:** multi-version goldens match
+- [x] `merge_versions` builds one column canvas from several versions: the
+      newest listed version's fields lead, then each older version appends only
+      its fields whose names are not yet present
+- [x] `export_csv_versions` facade; submissions fill the columns they carry and
+      leave the rest blank, so rows from any version coexist
+- [x] **GO:** multi-version goldens match (`multiversion`, `multiversion_reversed`)
+- [x] Cross-version repeat merging: every section (main + repeats) is merged
+      across versions, matched by `repeat_path`; `export_tables_text_versions`
+      exports the merged multi-section canvas (`multiversion_repeat`)
+- [ ] Deferred: per-version field paths that differ for the same field name
+      (values are read by the merged field's path)
 
-## Phase 6 — XLSX & header options
+## Phase 6 — XLSX & header options ✅
 
-- [ ] XLSX output; `xls_types_as_text`; media URLs; HXL tag columns; copy /
-      filter fields
-- [ ] **GO:** XLSX goldens match (cell-by-cell)
+- [x] `.xlsx` output (`tableflow-xlsx`, `rust_xlsxwriter`): one worksheet per
+      exported table (main + repeats), every cell written as text
+      (`xls_types_as_text` default); `tableflow::export_xlsx` returns bytes
+- [x] Excel worksheet-name rules: forbidden chars `[]:*?/\` and edge apostrophes
+      → `_`, truncate to 31 chars with ellipsis, de-duplicate with ` (n)`
+- [x] **GO:** XLSX goldens match cell-by-cell — workbook read back and compared
+      to the reference grid (`simple_flat`, `translated_fr`, `repeat_tables`,
+      `selmulti_both`, as `.xlsx.json`)
+- [x] `copy_fields`: extra submission keys (`_id`, `_uuid`, `_submission_time`,
+      `_tags` joined by `, `, `_validation_status` as uid/label…) appended as
+      trailing main-section columns (`copy_fields` fixture)
+- [x] HXL tag header rows (`tag_cols`): a header row per tag column (e.g. `hxl`)
+      after the labels, each field's tag at its first value column
+      (`hxl_tags` fixture)
+- [x] `force_index`: add an `_index` column to every section even without
+      repeats (`force_index` fixture)
+- [x] `filter_fields`: keep only the listed fields, in survey order
+      (`filter_fields` fixture)
+- [x] `include_media_url`: a `<name>_URL` column after each media field, filled
+      from the submission's `_attachments` (`media_url` fixture)
+- [ ] Deferred: `xls_types_as_text=false` (native cell types — the reference's
+      coercion is quirky and input-dependent, e.g. `int(9.5)=9`)
 
-## Phase 7 — Geo / SPSS / attachments
+## Phase 7 — Geo / SPSS / attachments ✅
 
-- [ ] GeoJSON and KML; SPSS value-label files; base64 attachments
-- [ ] **GO:** geo / SPSS / attachment goldens match
+- [x] GeoJSON (`tableflow-geojson`): one `Feature` per answered geo question in
+      the main section — `geopoint`→`Point`, `geotrace`→`LineString`,
+      `geoshape`→`Polygon`; coordinates swapped to `[lon, lat, alt]` (accuracy
+      dropped); polygon rings closed and wound counter-clockwise (RFC 7946);
+      other non-empty fields become summary-formatted `properties`
+- [x] `tableflow::export_geojson` facade (serialized `FeatureCollection`)
+- [x] **GO:** GeoJSON goldens match as parsed JSON (`geo_points`,
+      `geo_shape_cw` — the latter locks the right-hand-rule rewind)
+- [ ] Deferred: KML (reference output comes from an external converter), SPSS
+      value-label files (binary `.sav`), base64 attachments
 
-## Phase 8 — Automatic report
+## Phase 8 — Automatic report ✅
 
-- [ ] Per-field statistics (counts, frequencies, numeric summaries)
-- [ ] **GO:** auto-report goldens match
+- [x] Per-field summary (`tableflow-autoreport`): `provided` / `not_provided` /
+      `total_count` for every field; a `frequency` table and matching
+      `percentage`s for categorical fields — text-like types (by descending
+      count), `select_*` (choice labels, by descending count), `date`
+      (chronological); `select_*` and `date` set `show_graph`. Field types are
+      classified as in the reference (numeric / select / date / text / base);
+      notes and analysis (`qual*`/`transcript`/`translation`) fields are omitted
+      (`report_types` fixture)
+- [x] Numeric summaries for `integer` / `decimal`: `mean` / `median` / `mode` /
+      `stdev` (`"*"` when undefined), the sum of squared deviations accumulated
+      in exact rational arithmetic with a correctly-rounded square root to match
+      the reference bit-for-bit
+- [x] `tableflow::export_report` facade (serialized report)
+- [x] `split_by` disaggregation: each other field broken down by a chosen
+      field's values — `values: [[answer, {frequency, percentage}]]` across the
+      top-5 splitters (plus an `…` bucket); categorical fields only
+- [x] Numeric `split_by`: for `integer` / `decimal` fields, each splitter paired
+      with its `{median, mean, mode, stdev}` (`report_split_numeric`)
+- [x] **GO:** report goldens match as parsed JSON (`report_counts`,
+      `report_translated`, `report_numeric`, `report_numeric_edge`,
+      `report_split`, `report_split_numeric`)

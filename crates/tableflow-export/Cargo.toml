@@ -7,6 +7,14 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 description = "Export engine: field canvas, repeat flattening, translations and serialization for tableflow."
+readme = "README.md"
+keywords = ["csv", "export", "survey", "repeat", "tableflow"]
+categories = ["encoding"]
+
+[dependencies]
+tableflow-core.workspace = true
+tableflow-schema.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

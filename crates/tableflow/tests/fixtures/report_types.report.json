@@ -1,0 +1,117 @@
+{
+  "submissions_count": 2,
+  "fields": [
+    {
+      "name": "t",
+      "label": "t",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 0,
+        "provided": 2,
+        "show_graph": false,
+        "frequency": [
+          [
+            "10:00",
+            2
+          ]
+        ],
+        "percentage": [
+          [
+            "10:00",
+            100.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "bc",
+      "label": "bc",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 1,
+        "provided": 1,
+        "show_graph": false,
+        "frequency": [
+          [
+            "abc",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "abc",
+            50.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "calc",
+      "label": "calc",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 1,
+        "provided": 1,
+        "show_graph": false,
+        "frequency": [
+          [
+            "7",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "7",
+            50.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "rg",
+      "label": "rg",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 0,
+        "provided": 2,
+        "show_graph": false,
+        "median": 7.0,
+        "mean": 7.0,
+        "mode": "*",
+        "stdev": 2.8284271247461903
+      }
+    },
+    {
+      "name": "img",
+      "label": "img",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 1,
+        "provided": 1,
+        "show_graph": false,
+        "frequency": [
+          [
+            "a.jpg",
+            1
+          ]
+        ],
+        "percentage": [
+          [
+            "a.jpg",
+            50.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "g",
+      "label": "g",
+      "stats": {
+        "total_count": 2,
+        "not_provided": 1,
+        "provided": 1,
+        "show_graph": false
+      }
+    }
+  ]
+}

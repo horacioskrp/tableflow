@@ -1,0 +1,16 @@
+{
+  "version": { "content": { "survey": [
+    { "type": "text", "name": "a", "label": "A" },
+    { "type": "image", "name": "photo", "label": "Photo" },
+    { "type": "text", "name": "b", "label": "B" }
+  ] } },
+  "include_media_url": true,
+  "submissions": [
+    {
+      "a": "x",
+      "photo": "p.jpg",
+      "b": "y",
+      "_attachments": [{ "filename": "media/p.jpg", "download_url": "https://h/p.jpg" }]
+    }
+  ]
+}

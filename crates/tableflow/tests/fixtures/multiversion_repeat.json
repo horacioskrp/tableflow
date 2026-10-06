@@ -1,0 +1,22 @@
+{
+  "title": "HH",
+  "versions": [
+    { "content": { "survey": [
+      { "type": "text", "name": "hh", "label": "HH" },
+      { "type": "begin_repeat", "name": "m", "label": "M" },
+      { "type": "text", "name": "a", "label": "A" },
+      { "type": "end_repeat" }
+    ] } },
+    { "content": { "survey": [
+      { "type": "text", "name": "hh", "label": "HH" },
+      { "type": "begin_repeat", "name": "m", "label": "M" },
+      { "type": "text", "name": "a", "label": "A" },
+      { "type": "text", "name": "b", "label": "B" },
+      { "type": "end_repeat" }
+    ] } }
+  ],
+  "submissions": [
+    { "hh": "H1", "m": [{ "m/a": "x" }] },
+    { "hh": "H2", "m": [{ "m/a": "y", "m/b": "z" }] }
+  ]
+}

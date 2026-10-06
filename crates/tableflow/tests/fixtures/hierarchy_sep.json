@@ -1,0 +1,25 @@
+{
+  "title": "H",
+  "lang": "Francais",
+  "hierarchy_in_labels": true,
+  "group_sep": ":",
+  "version": {
+    "content": {
+      "translations": ["English", "Francais"],
+      "translated": ["label"],
+      "survey": [
+        { "type": "begin_group", "name": "g", "label": ["Grp", "Groupe"] },
+        { "type": "text", "name": "b", "label": ["Bee", "Abeille"] },
+        { "type": "select_multiple", "select_from_list_name": "col", "name": "c", "label": ["Col", "Couleur"] },
+        { "type": "end_group" },
+        { "type": "text", "name": "top", "label": ["Top", "Haut"] }
+      ],
+      "choices": [
+        { "list_name": "col", "name": "r", "label": ["Red", "Rouge"] }
+      ]
+    }
+  },
+  "submissions": [
+    { "g/b": "x", "g/c": "r", "top": "t" }
+  ]
+}

@@ -1,0 +1,11 @@
+# section: HH
+"hh";"_index"
+"A";"1"
+# section: members
+"mname";"_index";"_parent_table_name";"_parent_index"
+"x";"1";"HH";"1"
+"y";"2";"HH";"1"
+# section: pets
+"pname";"_parent_table_name";"_parent_index"
+"rex";"members";"1"
+"bo";"members";"1"
