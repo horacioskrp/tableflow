@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-06
+
 ### Added
 
 - `tableflow-cli` is now a working CLI (and published): `tableflow [--format
