@@ -13,7 +13,6 @@ repository = "https://github.com/horacioskrp/tableflow"
 [workspace.dependencies]
 # Internal crates
 tableflow-core = { path = "crates/tableflow-core", version = "0.1.2" }
-tableflow-content = { path = "crates/tableflow-content", version = "0.1.2" }
 tableflow-schema = { path = "crates/tableflow-schema", version = "0.1.2" }
 tableflow-export = { path = "crates/tableflow-export", version = "0.1.2" }
 tableflow-xlsx = { path = "crates/tableflow-xlsx", version = "0.1.2" }

@@ -8,12 +8,18 @@ authors.workspace = true
 repository.workspace = true
 description = "Command-line interface for tableflow (submissions → tabular exports)."
 readme = "README.md"
-# Scaffold only (no argument parsing yet) — not published until it is functional.
-publish = false
+keywords = ["xlsform", "survey", "csv", "export", "cli"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "tableflow"
 path = "src/main.rs"
+
+[dependencies]
+tableflow.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+anyhow.workspace = true
 
 [lints]
 workspace = true

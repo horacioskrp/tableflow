@@ -6,6 +6,19 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `tableflow-cli` is now a working CLI (and published): `tableflow [--format
+  csv|tables|xlsx|geojson|report] <schema.json> <submissions.json>` with the
+  full set of `Layout` flags (`--lang`, `--multiple-select`, `--copy-field`,
+  `--tag-col`, `--filter-field`, `--hierarchy`, `--media-url`, `--force-index`,
+  `--split-by`, `-o/--output`). Install with `cargo install tableflow-cli`.
+
+### Removed
+
+- `tableflow-content` (an unused, never-published stub): content normalization
+  is handled inline by `parse_version`, so the crate had no distinct role.
+
 ## [0.1.2] - 2026-10-06
 
 ### Added
