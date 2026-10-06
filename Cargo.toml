@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
@@ -12,14 +12,14 @@ repository = "https://github.com/horacioskrp/tableflow"
 
 [workspace.dependencies]
 # Internal crates
-tableflow-core = { path = "crates/tableflow-core", version = "0.1.1" }
-tableflow-content = { path = "crates/tableflow-content", version = "0.1.1" }
-tableflow-schema = { path = "crates/tableflow-schema", version = "0.1.1" }
-tableflow-export = { path = "crates/tableflow-export", version = "0.1.1" }
-tableflow-xlsx = { path = "crates/tableflow-xlsx", version = "0.1.1" }
-tableflow-geojson = { path = "crates/tableflow-geojson", version = "0.1.1" }
-tableflow-autoreport = { path = "crates/tableflow-autoreport", version = "0.1.1" }
-tableflow = { path = "crates/tableflow", version = "0.1.1" }
+tableflow-core = { path = "crates/tableflow-core", version = "0.1.2" }
+tableflow-content = { path = "crates/tableflow-content", version = "0.1.2" }
+tableflow-schema = { path = "crates/tableflow-schema", version = "0.1.2" }
+tableflow-export = { path = "crates/tableflow-export", version = "0.1.2" }
+tableflow-xlsx = { path = "crates/tableflow-xlsx", version = "0.1.2" }
+tableflow-geojson = { path = "crates/tableflow-geojson", version = "0.1.2" }
+tableflow-autoreport = { path = "crates/tableflow-autoreport", version = "0.1.2" }
+tableflow = { path = "crates/tableflow", version = "0.1.2" }
 
 # External
 serde = { version = "1", features = ["derive"] }

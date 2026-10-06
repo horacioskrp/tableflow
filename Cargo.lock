@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "tableflow"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "calamine",
  "criterion",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "tableflow-autoreport"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "num-bigint",
  "num-rational",
@@ -682,22 +682,22 @@ dependencies = [
 
 [[package]]
 name = "tableflow-cli"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "tableflow-content"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "tableflow-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "tableflow-export"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
  "tableflow-core",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "tableflow-geojson"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
  "tableflow-core",
@@ -715,7 +715,7 @@ dependencies = [
 
 [[package]]
 name = "tableflow-schema"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
  "tableflow-core",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "tableflow-xlsx"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rust_xlsxwriter",
  "tableflow-export",
