@@ -22,6 +22,11 @@ serde_json.workspace = true
 [dev-dependencies]
 serde_json.workspace = true
 calamine.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "export"
+harness = false
 
 [lints]
 workspace = true
