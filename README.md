@@ -52,8 +52,20 @@ worked example of every use case (`cargo run -p tableflow --example showcase`).
 | `tableflow-geojson` | GeoJSON serializer: geo responses to a `FeatureCollection` | ✅ |
 | `tableflow-autoreport` | Per-field summary report: counts, frequencies, numeric stats | ✅ |
 | `tableflow` | End-to-end facade (depend on this) | ✅ |
-| `tableflow-content` | XLSForm content normalization — reserved stub | — (`publish = false`) |
-| `tableflow-cli` | Command-line interface — scaffold | — (`publish = false`) |
+| `tableflow-cli` | Command-line interface (`cargo install tableflow-cli`) | ✅ |
+
+## CLI
+
+```sh
+cargo install tableflow-cli
+tableflow --format report survey.json submissions.json
+tableflow --format xlsx -o out.xlsx survey.json submissions.json
+```
+
+`tableflow <schema.json> <submissions.json>` with `--format csv|tables|xlsx|geojson|report`
+and the layout flags (`--lang`, `--multiple-select`, `--copy-field`, `--tag-col`,
+`--filter-field`, `--hierarchy`, `--media-url`, `--force-index`, `--split-by`,
+`-o/--output`). The binary is named `tableflow`.
 
 ## Development
 
