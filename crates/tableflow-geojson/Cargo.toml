@@ -9,6 +9,7 @@ repository.workspace = true
 description = "GeoJSON serializer for tableflow: geo responses to a FeatureCollection."
 keywords = ["geojson", "geo", "export", "spatial", "feature"]
 categories = ["encoding"]
+readme = "README.md"
 
 [dependencies]
 tableflow-core.workspace = true
