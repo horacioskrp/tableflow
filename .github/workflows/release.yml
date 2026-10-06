@@ -1,0 +1,59 @@
+name: release
+
+# Publishes the workspace's crates to crates.io when a version tag is pushed.
+#
+# Requires a repository secret `CARGO_REGISTRY_TOKEN` (a crates.io API token).
+# Add it under: Settings → Secrets and variables → Actions → New repository secret.
+#
+# Crates are published in dependency order; `cargo publish` waits for each to
+# appear on the index before the next (dependent) crate is published.
+# `tableflow-content` and `tableflow-cli` are `publish = false` and skipped.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Verify the whole workspace
+        run: cargo test --all-features
+
+      - name: Publish crates to crates.io (dependency order)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          for crate in \
+            tableflow-core \
+            tableflow-schema \
+            tableflow-export \
+            tableflow-xlsx \
+            tableflow-geojson \
+            tableflow-autoreport \
+            tableflow
+          do
+            echo "::group::publish $crate"
+            # Tolerate re-runs: skip a crate whose version is already uploaded.
+            if cargo publish -p "$crate"; then
+              echo "published $crate"
+            else
+              status=$?
+              if cargo search "$crate" | grep -q "^$crate = \"${GITHUB_REF_NAME#v}\""; then
+                echo "$crate already published at ${GITHUB_REF_NAME#v}, skipping"
+              else
+                echo "failed to publish $crate"
+                exit $status
+              fi
+            fi
+            echo "::endgroup::"
+          done
