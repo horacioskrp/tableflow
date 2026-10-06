@@ -6,6 +6,15 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Performance
+
+- Report frequency tallies are now linear: the per-field value counter,
+  `top_splitters`, and the disaggregation value index use a hash index over an
+  insertion-ordered list instead of a linear scan per value (previously O(n²) on
+  high-cardinality fields). Output is unchanged (first-seen order preserved). A
+  `criterion` benchmark harness (`benches/export.rs`) covers CSV and report
+  exports at 1k/10k/50k submissions.
+
 ## [0.1.1] - 2026-10-06
 
 No code changes. First version published to crates.io: `v0.1.0` was tagged
