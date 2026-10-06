@@ -13,6 +13,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch: {}
 
 env:
   CARGO_TERM_COLOR: always
@@ -32,7 +33,7 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           for crate in \
             tableflow-core \
             tableflow-schema \
@@ -43,17 +44,26 @@ jobs:
             tableflow
           do
             echo "::group::publish $crate"
-            # Tolerate re-runs: skip a crate whose version is already uploaded.
-            if cargo publish -p "$crate"; then
-              echo "published $crate"
-            else
-              status=$?
-              if cargo search "$crate" | grep -q "^$crate = \"${GITHUB_REF_NAME#v}\""; then
-                echo "$crate already published at ${GITHUB_REF_NAME#v}, skipping"
-              else
-                echo "failed to publish $crate"
-                exit $status
+            # Up to 3 attempts: skip if already uploaded; wait out crates.io's
+            # new-crate rate limit (HTTP 429) and retry; fail on anything else.
+            for attempt in 1 2 3; do
+              if out=$(cargo publish -p "$crate" 2>&1); then
+                echo "$out"
+                echo "published $crate"
+                break
               fi
-            fi
+              echo "$out"
+              if echo "$out" | grep -qiE "already (uploaded|exists)"; then
+                echo "$crate already published, skipping"
+                break
+              fi
+              if echo "$out" | grep -qi "429 Too Many Requests"; then
+                echo "rate limited on $crate; waiting 11 minutes (attempt $attempt)"
+                sleep 660
+                continue
+              fi
+              echo "failed to publish $crate"
+              exit 1
+            done
             echo "::endgroup::"
           done
