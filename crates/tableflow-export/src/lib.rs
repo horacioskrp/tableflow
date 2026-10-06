@@ -7,6 +7,7 @@
 //! (`select_multiple` expands per [`MultipleSelect`]). Output is `;`-separated
 //! with every field double-quoted (inner quotes doubled).
 
+use std::collections::HashMap;
 use std::io::{self, Write};
 
 use serde_json::Value;
@@ -122,7 +123,7 @@ pub fn write_csv<W: Write>(
     };
 
     write_line(writer, &header)?;
-    for tag_row in tag_rows(version, main, index, layout) {
+    for tag_row in tag_rows(version, main, layout) {
         write_line(writer, &tag_row)?;
     }
     for (position, submission) in submissions.iter().enumerate() {
@@ -139,12 +140,7 @@ pub fn write_csv<W: Write>(
 /// The tag header rows (one per `tag_col` that any field carries) for a
 /// section's value columns. Each field's tag sits at its first value column,
 /// with blanks for its expansion columns.
-fn tag_rows(
-    version: &Version,
-    section: &Section,
-    index: Option<usize>,
-    layout: &Layout,
-) -> Vec<Vec<String>> {
+fn tag_rows(version: &Version, section: &Section, layout: &Layout) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for &col in layout.tag_cols {
         let mut row = Vec::new();
@@ -152,15 +148,7 @@ fn tag_rows(
         for field in included_fields(section, layout) {
             let value = tag_value(&field.tags, col);
             any |= !value.is_empty();
-            let mut width = tableflow_schema::columns(
-                version,
-                field,
-                index,
-                layout.multiple_select,
-                layout.group_sep,
-                layout.hierarchy_in_labels,
-            )
-            .len();
+            let mut width = tableflow_schema::column_count(version, field, layout.multiple_select);
             if layout.include_media_url && is_media(field) {
                 width += 1;
             }
@@ -250,7 +238,7 @@ pub fn export_tables(
         .map(|section| Table {
             name: section_name(section, title),
             header: section_header(version, section, index, layout),
-            rows: tag_rows(version, section, index, layout),
+            rows: tag_rows(version, section, layout),
         })
         .collect();
 
@@ -323,6 +311,12 @@ fn field_values(
     lang: Option<usize>,
     layout: &Layout,
 ) -> Vec<String> {
+    // Build the attachment lookup once per submission, not once per media cell.
+    let attachments = if layout.include_media_url {
+        attachment_index(data)
+    } else {
+        HashMap::new()
+    };
     let mut vals = Vec::new();
     for field in included_fields(section, layout) {
         vals.extend(tableflow_schema::values(
@@ -333,10 +327,13 @@ fn field_values(
             layout.multiple_select,
         ));
         if layout.include_media_url && is_media(field) {
-            vals.push(media_url(
-                data,
-                &scalar(data.get(&field.path).unwrap_or(&Value::Null)),
-            ));
+            let value = scalar(data.get(&field.path).unwrap_or(&Value::Null));
+            let url = if value.is_empty() {
+                ""
+            } else {
+                attachments.get(value.as_str()).copied().unwrap_or("")
+            };
+            vals.push(url.to_owned());
         }
     }
     vals
@@ -359,30 +356,25 @@ fn included_fields<'a>(
     })
 }
 
-/// The download URL for a media `value`, matched by file name in the
-/// submission's `_attachments`; empty when absent.
-fn media_url(data: &Value, value: &str) -> String {
-    if value.is_empty() {
-        return String::new();
-    }
-    let Some(attachments) = data.get("_attachments").and_then(Value::as_array) else {
-        return String::new();
+/// Map each attachment's file name — full path and basename — to its download
+/// URL (first occurrence wins), for O(1) media-URL lookups per submission.
+fn attachment_index(data: &Value) -> HashMap<&str, &str> {
+    let mut index = HashMap::new();
+    let Some(items) = data.get("_attachments").and_then(Value::as_array) else {
+        return index;
     };
-    for attachment in attachments {
-        let name = attachment
-            .get("filename")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
+    for attachment in items {
+        let Some(url) = attachment.get("download_url").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(name) = attachment.get("filename").and_then(Value::as_str) else {
+            continue;
+        };
+        index.entry(name).or_insert(url);
         let basename = name.rsplit('/').next().unwrap_or(name);
-        if name == value || basename == value {
-            return attachment
-                .get("download_url")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_owned();
-        }
+        index.entry(basename).or_insert(url);
     }
-    String::new()
+    index
 }
 
 /// Emit one row for `section` from `data`, then recurse into its child repeats.

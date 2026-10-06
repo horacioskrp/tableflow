@@ -15,6 +15,12 @@ to [Semantic Versioning](https://semver.org/).
 
 ### Performance
 
+- More hot-path cleanups: `tableflow-schema::column_count` computes a field's
+  column count without building the header strings (used by the HXL tag-row
+  width, which no longer allocates a throwaway `Vec`); media-URL lookups build a
+  per-submission attachment index once instead of scanning `_attachments` per
+  media cell; and the numeric `mode` uses a hash count (O(n)) instead of a
+  linear scan per value. Output unchanged.
 - Report frequency tallies are now linear: the per-field value counter,
   `top_splitters`, and the disaggregation value index use a hash index over an
   insertion-ordered list instead of a linear scan per value (previously O(n²) on
