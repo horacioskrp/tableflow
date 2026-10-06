@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-06
+
 ### Added
 
 - `tableflow` re-exports `serde_json`, so callers can build the `Value` inputs
