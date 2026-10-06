@@ -45,6 +45,10 @@
 
 use serde_json::Value;
 
+/// Re-export of [`serde_json`]: build the `Value` inputs (and parse the JSON
+/// outputs) without adding a separate, possibly version-mismatched dependency.
+pub use serde_json;
+
 #[doc(inline)]
 pub use tableflow_core::{
     Choice, ChoiceList, Field, Section, Version, merge_versions, parse_version,
@@ -60,6 +64,22 @@ pub use tableflow_xlsx::XlsxError;
 pub fn export_csv(version_schema: &Value, submissions: &[Value], layout: &Layout) -> String {
     let version = parse_version(version_schema);
     tableflow_export::to_csv(&version, submissions, layout)
+}
+
+/// Stream the main section's submissions as CSV into `writer`, row by row,
+/// without buffering the whole export in memory. Same output as [`export_csv`].
+///
+/// # Errors
+///
+/// Propagates any error from `writer`.
+pub fn export_csv_to<W: std::io::Write>(
+    writer: &mut W,
+    version_schema: &Value,
+    submissions: &[Value],
+    layout: &Layout,
+) -> std::io::Result<()> {
+    let version = parse_version(version_schema);
+    tableflow_export::write_csv(writer, &version, submissions, layout)
 }
 
 /// Merge several form versions and export the shared main-section canvas as CSV.
@@ -156,5 +176,5 @@ pub fn export_report(
 ) -> String {
     let version = parse_version(version_schema);
     let report = tableflow_autoreport::report(&version, submissions, lang, split_by);
-    serde_json::to_string(&report).unwrap_or_default()
+    serde_json::to_string(&report).expect("a Report always serializes to JSON")
 }

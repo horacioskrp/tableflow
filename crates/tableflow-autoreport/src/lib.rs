@@ -157,11 +157,38 @@ fn field_tokens(field: &Field, submission: &Value) -> Option<Vec<String>> {
 /// A sentinel splitter key for submissions missing the split value.
 const MISSING_SPLITTER: &str = "\u{0}none";
 
+/// Counts string values while preserving first-seen order, in O(1) per update
+/// (a hash index over an insertion-ordered list). Keeps the frequency tallies
+/// linear rather than quadratic on high-cardinality fields.
+#[derive(Default)]
+struct Counter {
+    index: HashMap<String, usize>,
+    order: Vec<String>,
+    counts: Vec<u64>,
+}
+
+impl Counter {
+    fn add(&mut self, value: &str) {
+        if let Some(&i) = self.index.get(value) {
+            self.counts[i] += 1;
+        } else {
+            let i = self.order.len();
+            self.index.insert(value.to_owned(), i);
+            self.order.push(value.to_owned());
+            self.counts.push(1);
+        }
+    }
+
+    /// `(value, count)` pairs in first-seen order.
+    fn into_pairs(self) -> Vec<(String, u64)> {
+        self.order.into_iter().zip(self.counts).collect()
+    }
+}
+
 /// The split field's values, most common first (capped at 5), and whether an
 /// ellipsis bucket is needed (there were five or more distinct values).
 fn top_splitters(split: &Field, submissions: &[Value]) -> (Vec<String>, bool) {
-    let mut order: Vec<String> = Vec::new();
-    let mut counts: Vec<u64> = Vec::new();
+    let mut counter = Counter::default();
     for submission in submissions {
         let Some(value) = submission.get(&split.path) else {
             continue;
@@ -169,16 +196,9 @@ fn top_splitters(split: &Field, submissions: &[Value]) -> (Vec<String>, bool) {
         if value.is_null() {
             continue;
         }
-        let value = scalar(value);
-        match order.iter().position(|s| s == &value) {
-            Some(i) => counts[i] += 1,
-            None => {
-                order.push(value);
-                counts.push(1);
-            }
-        }
+        counter.add(&scalar(value));
     }
-    let mut pairs: Vec<(String, u64)> = order.into_iter().zip(counts).collect();
+    let mut pairs = counter.into_pairs();
     pairs.sort_by_key(|s| std::cmp::Reverse(s.1));
     let top: Vec<String> = pairs.into_iter().take(5).map(|(s, _)| s).collect();
     let add_ellipsis = top.len() == 5;
@@ -283,44 +303,25 @@ fn disaggregated_stats(
         return disaggregated_numeric(version, field, split, submissions, index);
     }
 
-    const MISSING: &str = MISSING_SPLITTER;
     let mut provided = 0;
     let mut not_provided = 0;
-    let mut splitter_order: Vec<String> = Vec::new();
-    let mut splitter_counts: Vec<u64> = Vec::new();
+    let mut value_index: HashMap<String, usize> = HashMap::new();
     let mut value_order: Vec<String> = Vec::new();
     let mut value_metrics: Vec<HashMap<String, u64>> = Vec::new();
 
     for submission in submissions {
-        let split_value = match submission.get(&split.path) {
-            Some(value) if !value.is_null() => Some(scalar(value)),
-            _ => None,
-        };
-        if let Some(value) = &split_value {
-            match splitter_order.iter().position(|s| s == value) {
-                Some(i) => splitter_counts[i] += 1,
-                None => {
-                    splitter_order.push(value.clone());
-                    splitter_counts.push(1);
-                }
-            }
-        }
-        let splitter_key = split_value.unwrap_or_else(|| MISSING.to_owned());
-
+        let key = splitter_key(split, submission);
         match field_tokens(field, submission) {
             None => not_provided += 1,
             Some(tokens) => {
                 provided += 1;
                 for token in tokens {
-                    let i = match value_order.iter().position(|v| v == &token) {
-                        Some(i) => i,
-                        None => {
-                            value_order.push(token);
-                            value_metrics.push(HashMap::new());
-                            value_order.len() - 1
-                        }
-                    };
-                    *value_metrics[i].entry(splitter_key.clone()).or_insert(0) += 1;
+                    let i = *value_index.entry(token.clone()).or_insert_with(|| {
+                        value_order.push(token);
+                        value_metrics.push(HashMap::new());
+                        value_order.len() - 1
+                    });
+                    *value_metrics[i].entry(key.clone()).or_insert(0) += 1;
                 }
             }
         }
@@ -331,11 +332,7 @@ fn disaggregated_stats(
         return Stats::counts(total_count, not_provided, provided, false);
     }
 
-    let mut splitters: Vec<(String, u64)> =
-        splitter_order.into_iter().zip(splitter_counts).collect();
-    splitters.sort_by_key(|s| std::cmp::Reverse(s.1));
-    let top: Vec<String> = splitters.into_iter().take(5).map(|(s, _)| s).collect();
-    let add_ellipsis = top.len() == 5;
+    let (top, add_ellipsis) = top_splitters(split, submissions);
     let is_select = class == Class::Select;
 
     let mut values: Vec<(String, Value, u64)> = Vec::new();
@@ -456,18 +453,9 @@ fn field_stats(
     }
 
     // Tally answers in first-seen order.
-    let mut order: Vec<String> = Vec::new();
-    let mut counts: Vec<u64> = Vec::new();
+    let mut counter = Counter::default();
     let mut provided = 0;
     let mut not_provided = 0;
-
-    let mut tally = |value: &str| match order.iter().position(|v| v == value) {
-        Some(i) => counts[i] += 1,
-        None => {
-            order.push(value.to_owned());
-            counts.push(1);
-        }
-    };
 
     for submission in submissions {
         match submission.get(&field.path) {
@@ -477,10 +465,10 @@ fn field_stats(
                 let raw = scalar(value);
                 if field.kind == "select_multiple" {
                     for choice in raw.split_whitespace() {
-                        tally(choice);
+                        counter.add(choice);
                     }
                 } else {
-                    tally(&raw);
+                    counter.add(&raw);
                 }
             }
         }
@@ -491,7 +479,7 @@ fn field_stats(
         return Stats::counts(total_count, not_provided, provided, false);
     }
 
-    let mut pairs: Vec<(String, u64)> = order.into_iter().zip(counts).collect();
+    let mut pairs: Vec<(String, u64)> = counter.into_pairs();
     if class == Class::Date {
         pairs.sort_by(|a, b| a.0.cmp(&b.0));
     } else {
@@ -605,9 +593,9 @@ fn numeric_summary(
 
     stdev = json!(sample_stdev(&data, mean_f));
     mode = if integer {
-        unique_mode(&ints).map_or_else(star, |m| json!(m))
+        unique_mode_int(&ints).map_or_else(star, |m| json!(m))
     } else {
-        unique_mode(&floats).map_or_else(star, |m| json!(m))
+        unique_mode_float(&floats).map_or_else(star, |m| json!(m))
     };
     (median, mean, mode, stdev)
 }
@@ -699,6 +687,9 @@ fn float_sqrt_of_frac(n: &BigInt, m: &BigInt) -> f64 {
     if n.is_zero() {
         return 0.0;
     }
+    // Scale the numerator to this many bits before the integer sqrt so the final
+    // conversion is correctly rounded — the constant CPython uses in
+    // `statistics._float_sqrt_of_frac` (comfortably above f64's 53-bit mantissa).
     const SQRT_BIT_WIDTH: i64 = 109;
     let q = (n.bits() as i64 - m.bits() as i64 - SQRT_BIT_WIDTH).div_euclid(2);
     if q >= 0 {
@@ -723,23 +714,33 @@ fn integer_sqrt_of_frac_rto(n: &BigInt, m: &BigInt) -> BigInt {
     }
 }
 
-/// The single most frequent value (first-seen order on ties), or `None` when
-/// more than one value shares the top frequency.
-fn unique_mode<T: PartialEq + Copy>(values: &[T]) -> Option<T> {
-    let mut order: Vec<T> = Vec::new();
-    let mut counts: Vec<u64> = Vec::new();
+/// The single most frequent integer, or `None` when more than one value shares
+/// the top frequency (O(n) via a hash count).
+fn unique_mode_int(values: &[i64]) -> Option<i64> {
+    let mut counts: HashMap<i64, u64> = HashMap::new();
     for &v in values {
-        match order.iter().position(|x| *x == v) {
-            Some(i) => counts[i] += 1,
-            None => {
-                order.push(v);
-                counts.push(1);
-            }
-        }
+        *counts.entry(v).or_insert(0) += 1;
     }
-    let max = *counts.iter().max()?;
-    let mut modes = order.iter().zip(&counts).filter(|(_, c)| **c == max);
-    let first = *modes.next()?.0;
+    let max = counts.values().copied().max()?;
+    let mut modes = counts.iter().filter(|&(_, &c)| c == max).map(|(&v, _)| v);
+    let first = modes.next()?;
+    match modes.next() {
+        Some(_) => None,
+        None => Some(first),
+    }
+}
+
+/// The single most frequent float, or `None` when more than one value shares
+/// the top frequency. Keyed by bit pattern (the data are finite).
+fn unique_mode_float(values: &[f64]) -> Option<f64> {
+    let mut counts: HashMap<u64, (f64, u64)> = HashMap::new();
+    for &v in values {
+        let entry = counts.entry(v.to_bits()).or_insert((v, 0));
+        entry.1 += 1;
+    }
+    let max = counts.values().map(|&(_, c)| c).max()?;
+    let mut modes = counts.values().filter(|&&(_, c)| c == max).map(|&(v, _)| v);
+    let first = modes.next()?;
     match modes.next() {
         Some(_) => None,
         None => Some(first),

@@ -6,6 +6,40 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-06
+
+### Added
+
+- `tableflow` re-exports `serde_json`, so callers can build the `Value` inputs
+  and parse the JSON outputs without a separate (possibly mismatched) dependency.
+- Streaming CSV: `tableflow_export::write_csv` and the `tableflow::export_csv_to`
+  facade write the main-section CSV row by row into any `std::io::Write`, so a
+  large export is never fully buffered in memory. `to_csv` / `export_csv` now
+  delegate to it (output unchanged — rows `\n`-separated, no trailing newline).
+
+### Fixed
+
+- Rust-guidelines audit follow-ups: `Layout` now derives `Debug`
+  (M-PUBLIC-DEBUG); `export_report` surfaces a serialization bug via `expect`
+  instead of silently returning an empty string; the `SQRT_BIT_WIDTH` magic
+  constant is documented (M-DOCUMENTED-MAGIC); the bench uses `#[expect]` rather
+  than `#[allow]` for its lint override (M-LINT-OVERRIDE-EXPECT).
+
+### Performance
+
+- More hot-path cleanups: `tableflow-schema::column_count` computes a field's
+  column count without building the header strings (used by the HXL tag-row
+  width, which no longer allocates a throwaway `Vec`); media-URL lookups build a
+  per-submission attachment index once instead of scanning `_attachments` per
+  media cell; and the numeric `mode` uses a hash count (O(n)) instead of a
+  linear scan per value. Output unchanged.
+- Report frequency tallies are now linear: the per-field value counter,
+  `top_splitters`, and the disaggregation value index use a hash index over an
+  insertion-ordered list instead of a linear scan per value (previously O(n²) on
+  high-cardinality fields). Output is unchanged (first-seen order preserved). A
+  `criterion` benchmark harness (`benches/export.rs`) covers CSV and report
+  exports at 1k/10k/50k submissions.
+
 ## [0.1.1] - 2026-10-06
 
 No code changes. First version published to crates.io: `v0.1.0` was tagged

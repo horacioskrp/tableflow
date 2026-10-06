@@ -7,6 +7,9 @@
 //! (`select_multiple` expands per [`MultipleSelect`]). Output is `;`-separated
 //! with every field double-quoted (inner quotes doubled).
 
+use std::collections::HashMap;
+use std::io::{self, Write};
+
 use serde_json::Value;
 use tableflow_core::{Section, Version};
 pub use tableflow_schema::MultipleSelect;
@@ -23,7 +26,7 @@ pub struct Table {
 }
 
 /// Export options: language, `select_multiple` mode, header layout and extras.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Layout<'a> {
     /// Language for labels (`None` = names mode).
     pub lang: Option<&'a str>,
@@ -73,41 +76,71 @@ const MEDIA_TYPES: [&str; 6] = [
 ];
 
 /// Export the main section's submissions as CSV per `layout`.
+///
+/// Rows are `\n`-separated with no trailing newline. For large exports, prefer
+/// [`write_csv`], which streams to any [`std::io::Write`] without buffering the
+/// whole output in memory.
 #[must_use]
 pub fn to_csv(version: &Version, submissions: &[Value], layout: &Layout) -> String {
+    let mut buffer = Vec::new();
+    // Writing to a `Vec<u8>` cannot fail, and every byte written is UTF-8.
+    write_csv(&mut buffer, version, submissions, layout)
+        .expect("in-memory CSV write is infallible");
+    String::from_utf8(buffer).expect("CSV output is valid UTF-8")
+}
+
+/// Stream the main section's submissions as CSV into `writer`.
+///
+/// Same output as [`to_csv`] (rows `\n`-separated, no trailing newline) but
+/// written row by row, so the full export is never held in memory.
+///
+/// # Errors
+///
+/// Propagates any error from `writer`.
+pub fn write_csv<W: Write>(
+    writer: &mut W,
+    version: &Version,
+    submissions: &[Value],
+    layout: &Layout,
+) -> io::Result<()> {
     let index = tableflow_schema::lang_index(version, layout.lang);
     let main = &version.sections[0];
+    let indexed = main.has_children || layout.force_index;
 
     let mut header = field_columns(version, main, index, layout);
     header.extend(layout.copy_fields.iter().map(|&name| name.to_owned()));
-    if main.has_children || layout.force_index {
+    if indexed {
         header.push("_index".to_owned());
     }
 
-    let mut lines = vec![format_line(&header)];
-    for tag_row in tag_rows(version, main, index, layout) {
-        lines.push(format_line(&tag_row));
+    let mut first = true;
+    let mut write_line = |writer: &mut W, cells: &[String]| -> io::Result<()> {
+        if !first {
+            writer.write_all(b"\n")?;
+        }
+        first = false;
+        write_line_to(writer, cells)
+    };
+
+    write_line(writer, &header)?;
+    for tag_row in tag_rows(version, main, layout) {
+        write_line(writer, &tag_row)?;
     }
     for (position, submission) in submissions.iter().enumerate() {
         let mut row = field_values(version, main, submission, index, layout);
         row.extend(copy_values(layout.copy_fields, submission, index));
-        if main.has_children || layout.force_index {
+        if indexed {
             row.push((position + 1).to_string());
         }
-        lines.push(format_line(&row));
+        write_line(writer, &row)?;
     }
-    lines.join("\n")
+    Ok(())
 }
 
 /// The tag header rows (one per `tag_col` that any field carries) for a
 /// section's value columns. Each field's tag sits at its first value column,
 /// with blanks for its expansion columns.
-fn tag_rows(
-    version: &Version,
-    section: &Section,
-    index: Option<usize>,
-    layout: &Layout,
-) -> Vec<Vec<String>> {
+fn tag_rows(version: &Version, section: &Section, layout: &Layout) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for &col in layout.tag_cols {
         let mut row = Vec::new();
@@ -115,15 +148,7 @@ fn tag_rows(
         for field in included_fields(section, layout) {
             let value = tag_value(&field.tags, col);
             any |= !value.is_empty();
-            let mut width = tableflow_schema::columns(
-                version,
-                field,
-                index,
-                layout.multiple_select,
-                layout.group_sep,
-                layout.hierarchy_in_labels,
-            )
-            .len();
+            let mut width = tableflow_schema::column_count(version, field, layout.multiple_select);
             if layout.include_media_url && is_media(field) {
                 width += 1;
             }
@@ -213,7 +238,7 @@ pub fn export_tables(
         .map(|section| Table {
             name: section_name(section, title),
             header: section_header(version, section, index, layout),
-            rows: tag_rows(version, section, index, layout),
+            rows: tag_rows(version, section, layout),
         })
         .collect();
 
@@ -286,6 +311,12 @@ fn field_values(
     lang: Option<usize>,
     layout: &Layout,
 ) -> Vec<String> {
+    // Build the attachment lookup once per submission, not once per media cell.
+    let attachments = if layout.include_media_url {
+        attachment_index(data)
+    } else {
+        HashMap::new()
+    };
     let mut vals = Vec::new();
     for field in included_fields(section, layout) {
         vals.extend(tableflow_schema::values(
@@ -296,10 +327,13 @@ fn field_values(
             layout.multiple_select,
         ));
         if layout.include_media_url && is_media(field) {
-            vals.push(media_url(
-                data,
-                &scalar(data.get(&field.path).unwrap_or(&Value::Null)),
-            ));
+            let value = scalar(data.get(&field.path).unwrap_or(&Value::Null));
+            let url = if value.is_empty() {
+                ""
+            } else {
+                attachments.get(value.as_str()).copied().unwrap_or("")
+            };
+            vals.push(url.to_owned());
         }
     }
     vals
@@ -322,30 +356,25 @@ fn included_fields<'a>(
     })
 }
 
-/// The download URL for a media `value`, matched by file name in the
-/// submission's `_attachments`; empty when absent.
-fn media_url(data: &Value, value: &str) -> String {
-    if value.is_empty() {
-        return String::new();
-    }
-    let Some(attachments) = data.get("_attachments").and_then(Value::as_array) else {
-        return String::new();
+/// Map each attachment's file name — full path and basename — to its download
+/// URL (first occurrence wins), for O(1) media-URL lookups per submission.
+fn attachment_index(data: &Value) -> HashMap<&str, &str> {
+    let mut index = HashMap::new();
+    let Some(items) = data.get("_attachments").and_then(Value::as_array) else {
+        return index;
     };
-    for attachment in attachments {
-        let name = attachment
-            .get("filename")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
+    for attachment in items {
+        let Some(url) = attachment.get("download_url").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(name) = attachment.get("filename").and_then(Value::as_str) else {
+            continue;
+        };
+        index.entry(name).or_insert(url);
         let basename = name.rsplit('/').next().unwrap_or(name);
-        if name == value || basename == value {
-            return attachment
-                .get("download_url")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_owned();
-        }
+        index.entry(basename).or_insert(url);
     }
-    String::new()
+    index
 }
 
 /// Emit one row for `section` from `data`, then recurse into its child repeats.
@@ -439,6 +468,28 @@ fn section_header(
 
 /// Quote every cell with `"`, double inner quotes, and join with `;`.
 fn format_line(cells: &[String]) -> String {
-    let escaped: Vec<String> = cells.iter().map(|c| c.replace('"', "\"\"")).collect();
-    format!("\"{}\"", escaped.join("\";\""))
+    let mut buffer = Vec::new();
+    write_line_to(&mut buffer, cells).expect("in-memory line write is infallible");
+    String::from_utf8(buffer).expect("CSV line is valid UTF-8")
+}
+
+/// Write one line of cells to `writer`: each cell wrapped in `"`, inner quotes
+/// doubled, cells joined with `;`. No trailing newline.
+fn write_line_to<W: Write>(writer: &mut W, cells: &[String]) -> io::Result<()> {
+    for (i, cell) in cells.iter().enumerate() {
+        if i > 0 {
+            writer.write_all(b";")?;
+        }
+        writer.write_all(b"\"")?;
+        // Double any `"` inside the cell.
+        let mut rest = cell.as_str();
+        while let Some(pos) = rest.find('"') {
+            writer.write_all(&rest.as_bytes()[..pos])?;
+            writer.write_all(b"\"\"")?;
+            rest = &rest[pos + 1..];
+        }
+        writer.write_all(rest.as_bytes())?;
+        writer.write_all(b"\"")?;
+    }
+    Ok(())
 }
