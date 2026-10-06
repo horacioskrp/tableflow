@@ -45,6 +45,10 @@
 
 use serde_json::Value;
 
+/// Re-export of [`serde_json`]: build the `Value` inputs (and parse the JSON
+/// outputs) without adding a separate, possibly version-mismatched dependency.
+pub use serde_json;
+
 #[doc(inline)]
 pub use tableflow_core::{
     Choice, ChoiceList, Field, Section, Version, merge_versions, parse_version,
@@ -172,5 +176,5 @@ pub fn export_report(
 ) -> String {
     let version = parse_version(version_schema);
     let report = tableflow_autoreport::report(&version, submissions, lang, split_by);
-    serde_json::to_string(&report).unwrap_or_default()
+    serde_json::to_string(&report).expect("a Report always serializes to JSON")
 }

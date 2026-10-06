@@ -8,10 +8,20 @@ to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `tableflow` re-exports `serde_json`, so callers can build the `Value` inputs
+  and parse the JSON outputs without a separate (possibly mismatched) dependency.
 - Streaming CSV: `tableflow_export::write_csv` and the `tableflow::export_csv_to`
   facade write the main-section CSV row by row into any `std::io::Write`, so a
   large export is never fully buffered in memory. `to_csv` / `export_csv` now
   delegate to it (output unchanged — rows `\n`-separated, no trailing newline).
+
+### Fixed
+
+- Rust-guidelines audit follow-ups: `Layout` now derives `Debug`
+  (M-PUBLIC-DEBUG); `export_report` surfaces a serialization bug via `expect`
+  instead of silently returning an empty string; the `SQRT_BIT_WIDTH` magic
+  constant is documented (M-DOCUMENTED-MAGIC); the bench uses `#[expect]` rather
+  than `#[allow]` for its lint override (M-LINT-OVERRIDE-EXPECT).
 
 ### Performance
 

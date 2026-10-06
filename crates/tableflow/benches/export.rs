@@ -3,7 +3,10 @@
 //! `cargo bench -p tableflow`. The report benchmarks exercise the frequency
 //! tally, which this corpus (mostly distinct `text` values) makes
 //! cardinality-sensitive.
-#![allow(missing_docs)] // criterion's macros generate undocumented public items
+#![expect(
+    missing_docs,
+    reason = "criterion's macros generate undocumented public items"
+)]
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use serde_json::{Value, json};
